@@ -253,6 +253,9 @@ let driveType      = 'none';   // 'drive' | 'neo' | 'miracle'
 let spaceReleased  = false;
 let ballTrail      = [];       // [{x,y}] for trail effect
 let driveMsgTimer  = 0;
+// Trajectory curve state
+let ballCurlTime   = 0;        // seconds since drive shot fired
+let ballCurlDir    = 0;        // +1 or -1 for miracle diagonal sweep direction
 
 // Drive shot tiers
 const TIER_DRIVE   = 0.40;    // blue fire drive shot
@@ -325,6 +328,7 @@ function initGame() {
   goalCooldown = shootCD = 0;
   driveCharging = false; drivePower = 0; driveActive = false; driveTimer = 0; driveType = 'none';
   spaceReleased = false; ballTrail = []; driveMsgTimer = 0;
+  ballCurlTime = 0; ballCurlDir = 0;
   updateHUD();
   hideMessage();
   gameState = 'playing';
@@ -468,34 +472,40 @@ function update(dt) {
   if (spaceReleased) {
     if (driveCharging && ball.owner === player && shootCD <= 0) {
       const gx = W - FP;
-      const spread = (1 - drivePower) * 60;
-      const gy = H / 2 + (Math.random() - 0.5) * spread;
-      const [nx, ny] = norm2(gx - player.x, gy - player.y);
 
-      // Determine tier and scale power/duration accordingly
-      let power, trailLen, shotDuration;
+      // Determine tier
+      let power, shotDuration;
       if (drivePower >= TIER_MIRACLE) {
-        driveType   = 'miracle';
-        power       = KICK_PWR * 3.8;
-        trailLen    = 30;
+        driveType    = 'miracle';
+        power        = KICK_PWR * 3.8;
         shotDuration = 2.4;
       } else if (drivePower >= TIER_NEO) {
-        driveType   = 'neo';
-        power       = KICK_PWR * 2.6;
-        trailLen    = 24;
+        driveType    = 'neo';
+        power        = KICK_PWR * 2.6;
         shotDuration = 2.0;
       } else if (drivePower >= TIER_DRIVE) {
-        driveType   = 'drive';
-        power       = KICK_PWR * (0.7 + drivePower * 2.2);
-        trailLen    = 18;
+        driveType    = 'drive';
+        power        = KICK_PWR * (0.7 + drivePower * 2.2);
         shotDuration = 1.8;
       } else {
-        driveType = 'none';
-        power     = KICK_PWR * (0.7 + drivePower * 1.2);
-        trailLen  = 0;
+        driveType    = 'none';
+        power        = KICK_PWR * (0.7 + drivePower * 1.2);
         shotDuration = 0;
       }
 
+      // Aim: miracle aims at entry corner; others aim at goal center ± spread
+      let gy;
+      if (driveType === 'miracle') {
+        // curl dir: if upper half → sweep starts up (negative), entry from top
+        ballCurlDir = player.y < H / 2 ? -1 : 1;
+        // initial aim toward entry corner so the path is a true diagonal
+        gy = H / 2 - ballCurlDir * GOAL_H * 0.38;
+      } else {
+        const spread = (1 - drivePower) * 60;
+        gy = H / 2 + (Math.random() - 0.5) * spread;
+      }
+
+      const [nx, ny] = norm2(gx - player.x, gy - player.y);
       ball.vx = nx * power + player.vx * 0.3;
       ball.vy = ny * power + player.vy * 0.3;
       ball.owner = null;
@@ -503,10 +513,14 @@ function update(dt) {
       shootCD = 0.4;
 
       if (driveType !== 'none') {
-        driveActive  = true;
-        driveTimer   = shotDuration;
+        driveActive   = true;
+        driveTimer    = shotDuration;
         driveMsgTimer = 1.4;
-        ballTrail    = [];
+        ballTrail     = [];
+        ballCurlTime  = 0;
+        // Arc: give drive/neo an upward boost; gravity applied continuously below
+        if (driveType === 'drive') ball.vy -= 240;
+        if (driveType === 'neo')   ball.vy -= 310;
       }
     }
     driveCharging = false;
@@ -519,6 +533,24 @@ function update(dt) {
 
   // ── Ball physics ──
   if (!ball.owner) {
+    // Drive-shot trajectory forces (applied before friction/movement)
+    if (driveActive) {
+      ballCurlTime += dt;
+      if (driveType === 'drive') {
+        // Arc: downward pull brings ball back after initial upward boost
+        ball.vy += 480 * dt;
+      } else if (driveType === 'neo') {
+        // Stronger arc gravity for neo
+        ball.vy += 600 * dt;
+      } else if (driveType === 'miracle') {
+        // Diagonal sweep: cosine force that curves ball across the goal mouth
+        // cos goes 1→0→-1 over MIRACLE_CURL_DUR seconds → one full sweep direction change
+        const MIRACLE_CURL_DUR = 1.0;
+        const t = Math.min(1, ballCurlTime / MIRACLE_CURL_DUR);
+        ball.vy += ballCurlDir * 900 * Math.cos(t * Math.PI) * dt;
+      }
+    }
+
     ball.vx *= FRICTION; ball.vy *= FRICTION;
     ball.x  += ball.vx * dt; ball.y  += ball.vy * dt;
 
