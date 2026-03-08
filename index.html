@@ -249,9 +249,15 @@ let driveCharging  = false;
 let drivePower     = 0;        // 0–1
 let driveActive    = false;    // ball is a drive shot in flight
 let driveTimer     = 0;
+let driveType      = 'none';   // 'drive' | 'neo' | 'miracle'
 let spaceReleased  = false;
 let ballTrail      = [];       // [{x,y}] for trail effect
 let driveMsgTimer  = 0;
+
+// Drive shot tiers
+const TIER_DRIVE   = 0.40;    // blue fire drive shot
+const TIER_NEO     = 0.72;    // electric blue neo-drive
+const TIER_MIRACLE = 1.00;    // white/gold miracle drive
 
 // ─── Player photo ────────────────────────────────────────────
 let playerPhoto = null;  // HTMLImageElement once loaded
@@ -317,7 +323,7 @@ function initGame() {
   playerScore = cpuScore = 0;
   timeLeft    = MATCH_SECS;
   goalCooldown = shootCD = 0;
-  driveCharging = false; drivePower = 0; driveActive = false; driveTimer = 0;
+  driveCharging = false; drivePower = 0; driveActive = false; driveTimer = 0; driveType = 'none';
   spaceReleased = false; ballTrail = []; driveMsgTimer = 0;
   updateHUD();
   hideMessage();
@@ -413,7 +419,7 @@ const TACKLE_RNG = 32;
 function update(dt) {
   if (shootCD  > 0) shootCD  -= dt;
   if (goalCooldown > 0) { goalCooldown -= dt; return; }
-  if (driveTimer > 0) { driveTimer -= dt; if (driveTimer <= 0) driveActive = false; }
+  if (driveTimer > 0) { driveTimer -= dt; if (driveTimer <= 0) { driveActive = false; driveType = 'none'; } }
   if (driveMsgTimer > 0) driveMsgTimer -= dt;
 
   // Ball trail for drive shot
@@ -462,21 +468,45 @@ function update(dt) {
   if (spaceReleased) {
     if (driveCharging && ball.owner === player && shootCD <= 0) {
       const gx = W - FP;
-      // More accurate at full charge
       const spread = (1 - drivePower) * 60;
       const gy = H / 2 + (Math.random() - 0.5) * spread;
       const [nx, ny] = norm2(gx - player.x, gy - player.y);
-      const power = KICK_PWR * (0.7 + drivePower * 2.2);
+
+      // Determine tier and scale power/duration accordingly
+      let power, trailLen, shotDuration;
+      if (drivePower >= TIER_MIRACLE) {
+        driveType   = 'miracle';
+        power       = KICK_PWR * 3.8;
+        trailLen    = 30;
+        shotDuration = 2.4;
+      } else if (drivePower >= TIER_NEO) {
+        driveType   = 'neo';
+        power       = KICK_PWR * 2.6;
+        trailLen    = 24;
+        shotDuration = 2.0;
+      } else if (drivePower >= TIER_DRIVE) {
+        driveType   = 'drive';
+        power       = KICK_PWR * (0.7 + drivePower * 2.2);
+        trailLen    = 18;
+        shotDuration = 1.8;
+      } else {
+        driveType = 'none';
+        power     = KICK_PWR * (0.7 + drivePower * 1.2);
+        trailLen  = 0;
+        shotDuration = 0;
+      }
+
       ball.vx = nx * power + player.vx * 0.3;
       ball.vy = ny * power + player.vy * 0.3;
       ball.owner = null;
       player.hasBall = false;
       shootCD = 0.4;
-      if (drivePower > 0.5) {
-        driveActive = true;
-        driveTimer = 1.8;
-        driveMsgTimer = 1.2;
-        ballTrail = [];
+
+      if (driveType !== 'none') {
+        driveActive  = true;
+        driveTimer   = shotDuration;
+        driveMsgTimer = 1.4;
+        ballTrail    = [];
       }
     }
     driveCharging = false;
@@ -862,28 +892,114 @@ function drawCharacter(p, photo, jerseyColor, isPlayer) {
   ctx.restore();
 }
 
+// Per-tier visual config
+function driveVisuals() {
+  if (driveType === 'miracle') return {
+    trailInner:  (t) => `rgba(255,255,${Math.floor(180*t)},${t * 0.9})`,
+    trailOuter:  (t) => `rgba(${Math.floor(200+55*t)},${Math.floor(150*t)},255,${t * 0.5})`,
+    glowInner:   'rgba(255,255,200,0.9)',
+    glowOuter:   'rgba(180,80,255,0)',
+    glowRadius:  28,
+    ballTop:     '#ffffff',
+    ballBot:     '#ffe566',
+    patchColor:  '#cc8800',
+    rimColor:    '#ffe566',
+    rimWidth:    3,
+  };
+  if (driveType === 'neo') return {
+    trailInner:  (t) => `rgba(${Math.floor(60*t)},${Math.floor(100*t)},255,${t * 0.85})`,
+    trailOuter:  (t) => `rgba(140,${Math.floor(40*t)},255,${t * 0.5})`,
+    glowInner:   'rgba(100,140,255,0.75)',
+    glowOuter:   'rgba(80,0,255,0)',
+    glowRadius:  22,
+    ballTop:     '#d0e8ff',
+    ballBot:     '#0044ff',
+    patchColor:  '#002288',
+    rimColor:    '#88aaff',
+    rimWidth:    2.5,
+  };
+  // drive (blue fire)
+  return {
+    trailInner:  (t) => `rgba(${Math.floor(30*t)},${Math.floor(140*t)},255,${t * 0.75})`,
+    trailOuter:  (t) => `rgba(0,80,200,${t * 0.4})`,
+    glowInner:   'rgba(50,160,255,0.6)',
+    glowOuter:   'rgba(0,60,200,0)',
+    glowRadius:  18,
+    ballTop:     '#e0f0ff',
+    ballBot:     '#0088ff',
+    patchColor:  '#004499',
+    rimColor:    '#44aaff',
+    rimWidth:    2,
+  };
+}
+
 function drawBall() {
   const bx = ball.x, by = ball.y;
 
-  // Drive shot trail
   if (driveActive && ballTrail.length > 1) {
+    const v = driveVisuals();
+    // Double-layer trail: outer soft halo + inner core
     for (let i = 1; i < ballTrail.length; i++) {
       const t = i / ballTrail.length;
-      const r = BR * t * 0.9;
+      const r = BR * t * 1.1;
+      // outer halo
+      ctx.beginPath();
+      ctx.arc(ballTrail[i].x, ballTrail[i].y, r * 1.6, 0, Math.PI*2);
+      ctx.fillStyle = v.trailOuter(t);
+      ctx.fill();
+      // inner core
       ctx.beginPath();
       ctx.arc(ballTrail[i].x, ballTrail[i].y, r, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(255,${Math.floor(160 * t)},0,${t * 0.7})`;
+      ctx.fillStyle = v.trailInner(t);
       ctx.fill();
     }
-  }
 
-  // Drive outer glow
-  if (driveActive) {
-    const glow = ctx.createRadialGradient(bx, by, BR, bx, by, BR + 16);
-    glow.addColorStop(0, 'rgba(255,180,0,0.6)');
-    glow.addColorStop(1, 'rgba(255,80,0,0)');
-    ctx.beginPath(); ctx.arc(bx, by, BR + 16, 0, Math.PI*2);
+    // Miracle gets extra sparkle particles along trail
+    if (driveType === 'miracle') {
+      for (let i = 2; i < ballTrail.length; i += 3) {
+        const t = i / ballTrail.length;
+        const ang = (Date.now() / 80 + i * 1.3) % (Math.PI * 2);
+        const px = ballTrail[i].x + Math.cos(ang) * BR * 1.2;
+        const py = ballTrail[i].y + Math.sin(ang) * BR * 1.2;
+        ctx.beginPath(); ctx.arc(px, py, 2.5 * t, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,240,100,${t * 0.9})`;
+        ctx.fill();
+      }
+    }
+
+    // Outer glow at ball position
+    const glow = ctx.createRadialGradient(bx, by, BR, bx, by, BR + v.glowRadius);
+    glow.addColorStop(0, v.glowInner);
+    glow.addColorStop(1, v.glowOuter);
+    ctx.beginPath(); ctx.arc(bx, by, BR + v.glowRadius, 0, Math.PI*2);
     ctx.fillStyle = glow; ctx.fill();
+
+    // Neo gets an electric ring pulse
+    if (driveType === 'neo') {
+      const ring = BR + 6 + 4 * Math.sin(Date.now() / 50);
+      ctx.beginPath(); ctx.arc(bx, by, ring, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(100,180,255,0.6)`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Miracle gets a rotating star corona
+    if (driveType === 'miracle') {
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(Date.now() / 200);
+      for (let s = 0; s < 6; s++) {
+        ctx.rotate(Math.PI / 3);
+        ctx.beginPath();
+        ctx.moveTo(0, BR + 4);
+        ctx.lineTo(2, BR + 14);
+        ctx.lineTo(-2, BR + 14);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(255,230,80,0.7)`;
+        ctx.fill();
+      }
+      ctx.restore();
+    }
   }
 
   // Shadow
@@ -897,8 +1013,9 @@ function drawBall() {
   ctx.arc(bx, by, BR, 0, Math.PI*2);
   const g = ctx.createRadialGradient(bx - 2, by - 2, 1, bx, by, BR);
   if (driveActive) {
-    g.addColorStop(0, '#fff8c0');
-    g.addColorStop(1, '#ff8800');
+    const v = driveVisuals();
+    g.addColorStop(0, v.ballTop);
+    g.addColorStop(1, v.ballBot);
   } else {
     g.addColorStop(0, '#fff');
     g.addColorStop(1, '#ccc');
@@ -906,12 +1023,19 @@ function drawBall() {
   ctx.fillStyle = g;
   ctx.fill();
 
-  // Pentagon patches
-  ctx.fillStyle = driveActive ? '#a04000' : '#222';
-  drawSoccerBallPatches(bx, by, BR);
-
-  ctx.strokeStyle = driveActive ? '#ff6600' : '#999';
-  ctx.lineWidth = driveActive ? 2 : 1;
+  // Patches
+  if (driveActive) {
+    const v = driveVisuals();
+    ctx.fillStyle = v.patchColor;
+    drawSoccerBallPatches(bx, by, BR);
+    ctx.strokeStyle = v.rimColor;
+    ctx.lineWidth = v.rimWidth;
+  } else {
+    ctx.fillStyle = '#222';
+    drawSoccerBallPatches(bx, by, BR);
+    ctx.strokeStyle = '#999';
+    ctx.lineWidth = 1;
+  }
   ctx.beginPath(); ctx.arc(bx, by, BR, 0, Math.PI*2); ctx.stroke();
 }
 
@@ -933,47 +1057,108 @@ function drawSoccerBallPatches(cx, cy, r) {
 
 function drawPowerBar() {
   if (!driveCharging && drivePower === 0) return;
-  const bw = 54, bh = 8;
+  const bw = 70, bh = 10;
   const bx = player.x - bw / 2;
-  const by = player.y - PR - 22;
+  const by = player.y - PR - 26;
 
-  // Background
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 4); ctx.fill();
+  // Background track
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 5); ctx.fill();
 
-  // Fill gradient based on power
-  const hue = (1 - drivePower) * 100; // green → yellow → red
-  const barGrad = ctx.createLinearGradient(bx, by, bx + bw, by);
-  barGrad.addColorStop(0, `hsl(${hue},100%,45%)`);
-  barGrad.addColorStop(1, `hsl(${Math.max(0, hue - 30)},100%,40%)`);
-  ctx.fillStyle = barGrad;
-  ctx.beginPath(); ctx.roundRect(bx, by, bw * drivePower, bh, 3); ctx.fill();
+  // Tier zone markers (faint dividers)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1;
+  [TIER_DRIVE, TIER_NEO].forEach(t => {
+    const mx = bx + bw * t;
+    ctx.beginPath(); ctx.moveTo(mx, by); ctx.lineTo(mx, by + bh); ctx.stroke();
+  });
+  ctx.restore();
 
-  // Border — flash white at full charge
-  ctx.strokeStyle = drivePower >= 1 ? `rgba(255,255,255,${0.5 + 0.5 * Math.sin(Date.now() / 80)})` : 'rgba(255,255,255,0.4)';
-  ctx.lineWidth = 1.2;
+  // Filled bar — gradient by tier
+  const filled = bw * drivePower;
+  if (filled > 0) {
+    const barGrad = ctx.createLinearGradient(bx, by, bx + bw, by);
+    barGrad.addColorStop(0,           '#2288ff');   // drive tier — blue
+    barGrad.addColorStop(TIER_NEO,    '#8833ff');   // neo tier — purple-blue
+    barGrad.addColorStop(TIER_MIRACLE,'#ffe566');   // miracle — gold
+    ctx.fillStyle = barGrad;
+    ctx.beginPath(); ctx.roundRect(bx, by, filled, bh, 3); ctx.fill();
+  }
+
+  // Miracle flash overlay
+  if (drivePower >= TIER_MIRACLE) {
+    const flash = 0.35 + 0.35 * Math.sin(Date.now() / 60);
+    ctx.fillStyle = `rgba(255,255,200,${flash})`;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.fill();
+  }
+
+  // Border
+  const borderFlash = drivePower >= TIER_MIRACLE
+    ? `rgba(255,230,100,${0.6 + 0.4 * Math.sin(Date.now() / 70)})`
+    : drivePower >= TIER_NEO ? 'rgba(150,80,255,0.8)'
+    : drivePower >= TIER_DRIVE ? 'rgba(50,160,255,0.7)'
+    : 'rgba(255,255,255,0.3)';
+  ctx.strokeStyle = borderFlash;
+  ctx.lineWidth = 1.4;
   ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.stroke();
 
   // Label
-  ctx.fillStyle = drivePower >= 1 ? '#ffdd00' : '#fff';
-  ctx.font = `bold ${drivePower >= 1 ? '9' : '8'}px sans-serif`;
+  const label = drivePower >= TIER_MIRACLE ? '✦ MIRACLE ✦'
+              : drivePower >= TIER_NEO     ? '⚡ NEO-DRIVE'
+              : drivePower >= TIER_DRIVE   ? '🔵 DRIVE'
+              : 'CHARGE';
+  const labelColor = drivePower >= TIER_MIRACLE ? '#ffe566'
+                   : drivePower >= TIER_NEO     ? '#cc88ff'
+                   : drivePower >= TIER_DRIVE   ? '#66ccff'
+                   : '#aaa';
+  ctx.fillStyle = labelColor;
+  ctx.font = `bold 9px sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-  ctx.fillText(drivePower >= 1 ? 'DRIVE!' : 'POWER', player.x, by - 2);
+  ctx.fillText(label, player.x, by - 3);
 }
 
 function drawDriveMessage() {
   if (driveMsgTimer <= 0) return;
   const alpha = Math.min(1, driveMsgTimer * 2);
-  const scale = 1 + (1.2 - driveMsgTimer) * 0.4;
+  const scale = 1 + (1.4 - Math.min(driveMsgTimer, 1.4)) * 0.35;
+
+  let text, fillColor, shadowColor, fontSize;
+  if (driveType === 'miracle') {
+    text = '✦ MIRACLE DRIVE ✦';
+    fillColor   = '#ffe566';
+    shadowColor = '#ff88ff';
+    fontSize    = 32;
+  } else if (driveType === 'neo') {
+    text = '⚡ NEO-DRIVE SHOT!';
+    fillColor   = '#88ccff';
+    shadowColor = '#4400ff';
+    fontSize    = 34;
+  } else {
+    text = '🔵 DRIVE SHOT!';
+    fillColor   = '#44aaff';
+    shadowColor = '#0044cc';
+    fontSize    = 36;
+  }
+
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(W / 2, H / 2 - 60);
   ctx.scale(scale, scale);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'bold 36px Segoe UI, sans-serif';
-  ctx.fillStyle = '#ff6600';
-  ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 20;
-  ctx.fillText('DRIVE SHOT!!', 0, 0);
+  ctx.font = `bold ${fontSize}px Segoe UI, sans-serif`;
+  ctx.fillStyle   = fillColor;
+  ctx.shadowColor = shadowColor;
+  ctx.shadowBlur  = driveType === 'miracle' ? 32 : 20;
+  ctx.fillText(text, 0, 0);
+
+  // Miracle: extra shimmer line below
+  if (driveType === 'miracle') {
+    ctx.font = 'bold 14px Segoe UI, sans-serif';
+    ctx.fillStyle = `rgba(255,220,100,${alpha * 0.8})`;
+    ctx.shadowBlur = 10;
+    ctx.fillText('UNSTOPPABLE', 0, 36);
+  }
   ctx.restore();
 }
 
