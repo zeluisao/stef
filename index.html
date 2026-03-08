@@ -256,6 +256,11 @@ let driveMsgTimer  = 0;
 // Trajectory curve state
 let ballCurlTime   = 0;        // seconds since drive shot fired
 let ballCurlDir    = 0;        // +1 or -1 for miracle diagonal sweep direction
+// Miracle drive 3-phase state machine
+let miraclePhase   = 0;        // 0=off 1=rush-to-corner 2=freeze 3=fire-into-net
+let miracleTimer   = 0;
+let miracleStopPt  = null;     // {x,y} corner where ball halts
+let miracleNetPt   = null;     // {x,y} target corner inside the goal
 
 // Drive shot tiers
 const TIER_DRIVE   = 0.40;    // blue fire drive shot
@@ -329,6 +334,7 @@ function initGame() {
   driveCharging = false; drivePower = 0; driveActive = false; driveTimer = 0; driveType = 'none';
   spaceReleased = false; ballTrail = []; driveMsgTimer = 0;
   ballCurlTime = 0; ballCurlDir = 0;
+  miraclePhase = 0; miracleTimer = 0; miracleStopPt = null; miracleNetPt = null;
   updateHUD();
   hideMessage();
   gameState = 'playing';
@@ -423,7 +429,7 @@ const TACKLE_RNG = 32;
 function update(dt) {
   if (shootCD  > 0) shootCD  -= dt;
   if (goalCooldown > 0) { goalCooldown -= dt; return; }
-  if (driveTimer > 0) { driveTimer -= dt; if (driveTimer <= 0) { driveActive = false; driveType = 'none'; } }
+  if (driveTimer > 0) { driveTimer -= dt; if (driveTimer <= 0 && miraclePhase === 0) { driveActive = false; driveType = 'none'; } }
   if (driveMsgTimer > 0) driveMsgTimer -= dt;
 
   // Ball trail for drive shot
@@ -471,56 +477,61 @@ function update(dt) {
   // ── Fire on Space release ──
   if (spaceReleased) {
     if (driveCharging && ball.owner === player && shootCD <= 0) {
-      const gx = W - FP;
 
-      // Determine tier
-      let power, shotDuration;
       if (drivePower >= TIER_MIRACLE) {
-        driveType    = 'miracle';
-        power        = KICK_PWR * 3.8;
-        shotDuration = 2.4;
-      } else if (drivePower >= TIER_NEO) {
-        driveType    = 'neo';
-        power        = KICK_PWR * 2.6;
-        shotDuration = 2.0;
-      } else if (drivePower >= TIER_DRIVE) {
-        driveType    = 'drive';
-        power        = KICK_PWR * (0.7 + drivePower * 2.2);
-        shotDuration = 1.8;
-      } else {
-        driveType    = 'none';
-        power        = KICK_PWR * (0.7 + drivePower * 1.2);
-        shotDuration = 0;
-      }
+        // ── MIRACLE DRIVE: 3-phase scripted trajectory ──────────
+        driveType   = 'miracle';
+        ballCurlDir = player.y < H / 2 ? -1 : 1;   // -1 = stop at top, 1 = stop at bottom
+        const mGTop = H / 2 - GOAL_H / 2;
+        const mGBot = H / 2 + GOAL_H / 2;
+        const stopX = W - FP - BR - 4;              // just inside goal line
+        if (ballCurlDir === -1) {
+          // player upper half → rush to top corner, then fire to bottom
+          miracleStopPt = { x: stopX, y: mGTop + 10 };
+          miracleNetPt  = { x: W - FP + GOAL_DEPTH, y: mGBot - 10 };
+        } else {
+          // player lower half → rush to bottom corner, then fire to top
+          miracleStopPt = { x: stopX, y: mGBot - 10 };
+          miracleNetPt  = { x: W - FP + GOAL_DEPTH, y: mGTop + 10 };
+        }
+        ball.vx = 0; ball.vy = 0;
+        ball.owner = null; player.hasBall = false;
+        shootCD = 0.4;
+        driveActive = true; driveTimer = 4.0;
+        driveMsgTimer = 2.0; ballTrail = []; ballCurlTime = 0;
+        miraclePhase = 1;
 
-      // Aim: miracle aims at entry corner; others aim at goal center ± spread
-      let gy;
-      if (driveType === 'miracle') {
-        // curl dir: if upper half → sweep starts up (negative), entry from top
-        ballCurlDir = player.y < H / 2 ? -1 : 1;
-        // initial aim toward entry corner so the path is a true diagonal
-        gy = H / 2 - ballCurlDir * GOAL_H * 0.38;
       } else {
+        // ── DRIVE / NEO / NORMAL: physics-based arc shots ───────
+        let power, shotDuration;
+        if (drivePower >= TIER_NEO) {
+          driveType    = 'neo';
+          power        = KICK_PWR * 2.6;
+          shotDuration = 2.0;
+        } else if (drivePower >= TIER_DRIVE) {
+          driveType    = 'drive';
+          power        = KICK_PWR * (0.7 + drivePower * 2.2);
+          shotDuration = 1.8;
+        } else {
+          driveType    = 'none';
+          power        = KICK_PWR * (0.7 + drivePower * 1.2);
+          shotDuration = 0;
+        }
         const spread = (1 - drivePower) * 60;
-        gy = H / 2 + (Math.random() - 0.5) * spread;
-      }
-
-      const [nx, ny] = norm2(gx - player.x, gy - player.y);
-      ball.vx = nx * power + player.vx * 0.3;
-      ball.vy = ny * power + player.vy * 0.3;
-      ball.owner = null;
-      player.hasBall = false;
-      shootCD = 0.4;
-
-      if (driveType !== 'none') {
-        driveActive   = true;
-        driveTimer    = shotDuration;
-        driveMsgTimer = 1.4;
-        ballTrail     = [];
-        ballCurlTime  = 0;
-        // Arc: give drive/neo an upward boost; gravity applied continuously below
-        if (driveType === 'drive') ball.vy -= 240;
-        if (driveType === 'neo')   ball.vy -= 310;
+        const gy = H / 2 + (Math.random() - 0.5) * spread;
+        const [nx, ny] = norm2((W - FP) - player.x, gy - player.y);
+        ball.vx = nx * power + player.vx * 0.3;
+        ball.vy = ny * power + player.vy * 0.3;
+        ball.owner = null; player.hasBall = false;
+        shootCD = 0.4;
+        if (driveType !== 'none') {
+          driveActive   = true;
+          driveTimer    = shotDuration;
+          driveMsgTimer = 1.4;
+          ballTrail = []; ballCurlTime = 0;
+          if (driveType === 'drive') ball.vy -= 240;
+          if (driveType === 'neo')   ball.vy -= 310;
+        }
       }
     }
     driveCharging = false;
@@ -533,57 +544,87 @@ function update(dt) {
 
   // ── Ball physics ──
   if (!ball.owner) {
-    // Drive-shot trajectory forces (applied before friction/movement)
-    if (driveActive) {
+
+    // ── Miracle drive: 3-phase scripted trajectory ──────────────
+    if (miraclePhase === 1) {
+      // Phase 1: rush diagonally toward entry corner
       ballCurlTime += dt;
-      if (driveType === 'drive') {
-        // Arc: downward pull brings ball back after initial upward boost
-        ball.vy += 480 * dt;
-      } else if (driveType === 'neo') {
-        // Stronger arc gravity for neo
-        ball.vy += 600 * dt;
-      } else if (driveType === 'miracle') {
-        // Diagonal sweep: cosine force that curves ball across the goal mouth
-        // cos goes 1→0→-1 over MIRACLE_CURL_DUR seconds → one full sweep direction change
-        const MIRACLE_CURL_DUR = 1.0;
-        const t = Math.min(1, ballCurlTime / MIRACLE_CURL_DUR);
-        ball.vy += ballCurlDir * 900 * Math.cos(t * Math.PI) * dt;
-      }
-    }
-
-    ball.vx *= FRICTION; ball.vy *= FRICTION;
-    ball.x  += ball.vx * dt; ball.y  += ball.vy * dt;
-
-    // Top / bottom bounce
-    if (ball.y < FP + BR) { ball.y = FP + BR; ball.vy =  Math.abs(ball.vy); }
-    if (ball.y > H-FP-BR) { ball.y = H-FP-BR; ball.vy = -Math.abs(ball.vy); }
-
-    const gTop    = H/2 - GOAL_H/2;
-    const gBottom = H/2 + GOAL_H/2;
-
-    // Left wall / goal (CPU scores — player defends left)
-    if (ball.x < FP + BR) {
-      if (ball.y >= gTop && ball.y <= gBottom) {
-        triggerGoal(1); return;   // cpu scored
-      }
-      ball.x = FP + BR; ball.vx = Math.abs(ball.vx);
-    }
-    // Right wall / goal (Player scores — attack right)
-    if (ball.x > W - FP - BR) {
-      if (ball.y >= gTop && ball.y <= gBottom) {
-        triggerGoal(0); return;   // player scored
-      }
-      ball.x = W-FP-BR; ball.vx = -Math.abs(ball.vx);
-    }
-
-    // Pickup
-    [player, cpu].forEach(p => {
-      if (ball.owner) return;
-      if (dist(p, ball) < CTRL_RANGE) {
-        ball.owner = p; p.hasBall = true;
+      const mpDx = miracleStopPt.x - ball.x;
+      const mpDy = miracleStopPt.y - ball.y;
+      const mpDist = Math.hypot(mpDx, mpDy);
+      if (mpDist < 6) {
+        ball.x = miracleStopPt.x; ball.y = miracleStopPt.y;
         ball.vx = 0; ball.vy = 0;
+        miraclePhase = 2;
+        miracleTimer = 0.5;     // freeze duration (seconds)
+      } else {
+        const spd = 2400;
+        ball.vx = (mpDx / mpDist) * spd;
+        ball.vy = (mpDy / mpDist) * spd;
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
       }
-    });
+      return; // skip normal physics & pickup during phases 1-2
+
+    } else if (miraclePhase === 2) {
+      // Phase 2: ball frozen at corner — dramatic pause
+      ball.vx = 0; ball.vy = 0;
+      miracleTimer -= dt;
+      if (miracleTimer <= 0) {
+        // Phase 3: fire at blinding speed into opposite corner
+        miraclePhase = 3;
+        const mnDx = miracleNetPt.x - ball.x;
+        const mnDy = miracleNetPt.y - ball.y;
+        const mnDist = Math.hypot(mnDx, mnDy);
+        ball.vx = (mnDx / mnDist) * 5500;
+        ball.vy = (mnDy / mnDist) * 5500;
+      }
+      return; // skip normal physics during freeze
+
+    } else {
+      // ── Normal ball physics (drive arc + friction + bounces + goal) ──
+      if (driveActive && miraclePhase === 0) {
+        ballCurlTime += dt;
+        if (driveType === 'drive') ball.vy += 480 * dt;
+        else if (driveType === 'neo') ball.vy += 600 * dt;
+      }
+
+      ball.vx *= FRICTION; ball.vy *= FRICTION;
+      ball.x  += ball.vx * dt; ball.y  += ball.vy * dt;
+
+      // Top / bottom bounce
+      if (ball.y < FP + BR) { ball.y = FP + BR; ball.vy =  Math.abs(ball.vy); }
+      if (ball.y > H-FP-BR) { ball.y = H-FP-BR; ball.vy = -Math.abs(ball.vy); }
+
+      const gTop    = H/2 - GOAL_H/2;
+      const gBottom = H/2 + GOAL_H/2;
+
+      // Left wall / goal (CPU scores — player defends left)
+      if (ball.x < FP + BR) {
+        if (ball.y >= gTop && ball.y <= gBottom) {
+          triggerGoal(1); return;
+        }
+        ball.x = FP + BR; ball.vx = Math.abs(ball.vx);
+      }
+      // Right wall / goal (Player scores — attack right)
+      if (ball.x > W - FP - BR) {
+        if (ball.y >= gTop && ball.y <= gBottom) {
+          miraclePhase = 0;   // clean up in case phase 3 triggered this
+          triggerGoal(0); return;
+        }
+        ball.x = W-FP-BR; ball.vx = -Math.abs(ball.vx);
+      }
+
+      // Pickup (only when no scripted miracle in flight)
+      [player, cpu].forEach(p => {
+        if (ball.owner) return;
+        if (dist(p, ball) < CTRL_RANGE) {
+          ball.owner = p; p.hasBall = true;
+          ball.vx = 0; ball.vy = 0;
+        }
+      });
+    }
+
   } else {
     // Dribble: ball hugs front of owner
     const ownVLen = Math.hypot(ball.owner.vx, ball.owner.vy);
@@ -1015,8 +1056,30 @@ function drawBall() {
       ctx.stroke();
     }
 
+    // Phase 2 freeze: pulsing halo + sparks
+    if (miraclePhase === 2) {
+      const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 40);
+      const haloR = BR + 10 + pulse * 12;
+      const halo = ctx.createRadialGradient(bx, by, BR, bx, by, haloR + 8);
+      halo.addColorStop(0, `rgba(255,240,100,${0.7 + 0.3 * pulse})`);
+      halo.addColorStop(1, 'rgba(255,180,0,0)');
+      ctx.beginPath(); ctx.arc(bx, by, haloR + 8, 0, Math.PI*2);
+      ctx.fillStyle = halo; ctx.fill();
+      // 8 burst sparks
+      ctx.save(); ctx.translate(bx, by);
+      ctx.rotate(Date.now() / 120);
+      for (let s = 0; s < 8; s++) {
+        ctx.rotate(Math.PI / 4);
+        const slen = 8 + pulse * 10;
+        ctx.beginPath(); ctx.moveTo(0, BR + 4); ctx.lineTo(0, BR + 4 + slen);
+        ctx.strokeStyle = `rgba(255,220,60,${0.6 + 0.4 * pulse})`;
+        ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // Miracle gets a rotating star corona
-    if (driveType === 'miracle') {
+    if (driveType === 'miracle' && miraclePhase !== 2) {
       ctx.save();
       ctx.translate(bx, by);
       ctx.rotate(Date.now() / 200);
@@ -1032,7 +1095,7 @@ function drawBall() {
       }
       ctx.restore();
     }
-  }
+  } // end driveActive trail block
 
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
