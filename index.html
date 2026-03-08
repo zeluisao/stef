@@ -481,18 +481,19 @@ function update(dt) {
       if (drivePower >= TIER_MIRACLE) {
         // ── MIRACLE DRIVE: 3-phase scripted trajectory ──────────
         driveType   = 'miracle';
-        ballCurlDir = player.y < H / 2 ? -1 : 1;   // -1 = stop at top, 1 = stop at bottom
+        // curlDir drives the diagonal angle of the wind-up
+        ballCurlDir = player.y < H / 2 ? 1 : -1;
         const mGTop = H / 2 - GOAL_H / 2;
         const mGBot = H / 2 + GOAL_H / 2;
-        const stopX = W - FP - BR - 4;              // just inside goal line
-        if (ballCurlDir === -1) {
-          // player upper half → rush to top corner, then fire to bottom
-          miracleStopPt = { x: stopX, y: mGTop + 10 };
-          miracleNetPt  = { x: W - FP + GOAL_DEPTH, y: mGBot - 10 };
+        // Phase 1 target: behind the ball, diagonally away from the goal
+        miracleStopPt = { x: ball.x - 130, y: ball.y + ballCurlDir * 90 };
+        // Phase 3 target: opposite corner of goal (diagonal cut)
+        if (ballCurlDir === 1) {
+          // wind-up goes down-left → fire to top corner
+          miracleNetPt = { x: W - FP + GOAL_DEPTH, y: mGTop + 10 };
         } else {
-          // player lower half → rush to bottom corner, then fire to top
-          miracleStopPt = { x: stopX, y: mGBot - 10 };
-          miracleNetPt  = { x: W - FP + GOAL_DEPTH, y: mGTop + 10 };
+          // wind-up goes up-left → fire to bottom corner
+          miracleNetPt = { x: W - FP + GOAL_DEPTH, y: mGBot - 10 };
         }
         ball.vx = 0; ball.vy = 0;
         ball.owner = null; player.hasBall = false;
@@ -558,7 +559,7 @@ function update(dt) {
         miraclePhase = 2;
         miracleTimer = 0.5;     // freeze duration (seconds)
       } else {
-        const spd = 2400;
+        const spd = 1400;  // visible wind-up speed
         ball.vx = (mpDx / mpDist) * spd;
         ball.vy = (mpDy / mpDist) * spd;
         ball.x += ball.vx * dt;
@@ -1220,9 +1221,9 @@ function drawDriveMessage() {
 
   let text, fillColor, shadowColor, fontSize;
   if (driveType === 'miracle') {
-    text = '✦ MIRACLE DRIVE ✦';
-    fillColor   = '#ffe566';
-    shadowColor = '#ff88ff';
+    text = miraclePhase === 2 ? '⚡ CHARGING... ⚡' : '✦ MIRACLE DRIVE ✦';
+    fillColor   = miraclePhase === 2 ? '#ffcc00' : '#ffe566';
+    shadowColor = miraclePhase === 2 ? '#ff4400' : '#ff88ff';
     fontSize    = 32;
   } else if (driveType === 'neo') {
     text = '⚡ NEO-DRIVE SHOT!';
