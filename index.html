@@ -214,8 +214,9 @@
 </div>
 
 <div id="instructions">
-  <strong>Move:</strong> Mouse cursor (your player follows it) &nbsp;|&nbsp;
-  <strong>Shoot:</strong> Space &nbsp;|&nbsp;
+  <strong>Move:</strong> Mouse &nbsp;|&nbsp;
+  <strong>Shoot:</strong> Tap Space &nbsp;|&nbsp;
+  <strong>Drive Shot:</strong> Hold Space to charge ⚡ → release to fire &nbsp;|&nbsp;
   Score in the <strong>right goal</strong> — defend the left!
 </div>
 
@@ -243,6 +244,15 @@ let goalCooldown = 0;
 let shootCD      = 0;
 let playerName   = 'YOU';
 
+// Drive shot state
+let driveCharging  = false;
+let drivePower     = 0;        // 0–1
+let driveActive    = false;    // ball is a drive shot in flight
+let driveTimer     = 0;
+let spaceReleased  = false;
+let ballTrail      = [];       // [{x,y}] for trail effect
+let driveMsgTimer  = 0;
+
 // ─── Player photo ────────────────────────────────────────────
 let playerPhoto = null;  // HTMLImageElement once loaded
 let cpuPhoto    = null;  // we generate a CPU face on an offscreen canvas
@@ -262,7 +272,10 @@ document.addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'Space') e.preventDefault();
 });
-document.addEventListener('keyup', e => { keys[e.code] = false; });
+document.addEventListener('keyup', e => {
+  keys[e.code] = false;
+  if (e.code === 'Space') spaceReleased = true;
+});
 
 // ─── Entities ────────────────────────────────────────────────
 let player, cpu, ball;
@@ -304,6 +317,8 @@ function initGame() {
   playerScore = cpuScore = 0;
   timeLeft    = MATCH_SECS;
   goalCooldown = shootCD = 0;
+  driveCharging = false; drivePower = 0; driveActive = false; driveTimer = 0;
+  spaceReleased = false; ballTrail = []; driveMsgTimer = 0;
   updateHUD();
   hideMessage();
   gameState = 'playing';
@@ -398,6 +413,16 @@ const TACKLE_RNG = 32;
 function update(dt) {
   if (shootCD  > 0) shootCD  -= dt;
   if (goalCooldown > 0) { goalCooldown -= dt; return; }
+  if (driveTimer > 0) { driveTimer -= dt; if (driveTimer <= 0) driveActive = false; }
+  if (driveMsgTimer > 0) driveMsgTimer -= dt;
+
+  // Ball trail for drive shot
+  if (driveActive && !ball.owner) {
+    ballTrail.push({ x: ball.x, y: ball.y });
+    if (ballTrail.length > 18) ballTrail.shift();
+  } else if (!driveActive) {
+    ballTrail = [];
+  }
 
   // ── Player movement (follow mouse) ──
   const pdx = mouse.x - player.x, pdy = mouse.y - player.y;
@@ -418,24 +443,45 @@ function update(dt) {
   player.y  = clamp(player.y, FP + PR, H - FP - PR);
   player.legPhase += Math.hypot(player.vx, player.vy) * dt * 0.08;
 
-  // ── Shoot ──
-  if (keys['Space'] && ball.owner === player && shootCD <= 0) {
-    // Shoot toward right goal
-    const gx = W - FP - GOAL_W / 2;
-    const gy = H / 2 + (Math.random() - 0.5) * 30;
-    const [nx, ny] = norm2(gx - player.x, gy - player.y);
-    ball.vx = nx * KICK_PWR + player.vx * 0.3;
-    ball.vy = ny * KICK_PWR + player.vy * 0.3;
-    ball.owner = null;
-    player.hasBall = false;
-    shootCD = 0.4;
+  // ── Drive shot charging (hold Space while owning ball) ──
+  if (keys['Space'] && ball.owner === player) {
+    driveCharging = true;
+    drivePower = Math.min(1, drivePower + dt / 1.4);
   }
-  // Tackle
+
+  // ── Tackle (immediate, regardless of charging) ──
   if (keys['Space'] && ball.owner === cpu && dist(player, ball) < TACKLE_RNG && shootCD <= 0) {
     ball.owner = null; cpu.hasBall = false;
     const [nx, ny] = norm2(player.x - cpu.x, player.y - cpu.y);
     ball.vx = nx * 200; ball.vy = ny * 200;
     shootCD = 0.5;
+    driveCharging = false; drivePower = 0;
+  }
+
+  // ── Fire on Space release ──
+  if (spaceReleased) {
+    if (driveCharging && ball.owner === player && shootCD <= 0) {
+      const gx = W - FP;
+      // More accurate at full charge
+      const spread = (1 - drivePower) * 60;
+      const gy = H / 2 + (Math.random() - 0.5) * spread;
+      const [nx, ny] = norm2(gx - player.x, gy - player.y);
+      const power = KICK_PWR * (0.7 + drivePower * 2.2);
+      ball.vx = nx * power + player.vx * 0.3;
+      ball.vy = ny * power + player.vy * 0.3;
+      ball.owner = null;
+      player.hasBall = false;
+      shootCD = 0.4;
+      if (drivePower > 0.5) {
+        driveActive = true;
+        driveTimer = 1.8;
+        driveMsgTimer = 1.2;
+        ballTrail = [];
+      }
+    }
+    driveCharging = false;
+    drivePower = 0;
+    spaceReleased = false;
   }
 
   // ── CPU AI ──
@@ -453,17 +499,17 @@ function update(dt) {
     const gTop    = H/2 - GOAL_H/2;
     const gBottom = H/2 + GOAL_H/2;
 
-    // Left wall / goal
+    // Left wall / goal (CPU scores — player defends left)
     if (ball.x < FP + BR) {
       if (ball.y >= gTop && ball.y <= gBottom) {
-        triggerGoal(0); return;   // player scored
+        triggerGoal(1); return;   // cpu scored
       }
       ball.x = FP + BR; ball.vx = Math.abs(ball.vx);
     }
-    // Right wall / goal
+    // Right wall / goal (Player scores — attack right)
     if (ball.x > W - FP - BR) {
       if (ball.y >= gTop && ball.y <= gBottom) {
-        triggerGoal(1); return;   // cpu scored
+        triggerGoal(0); return;   // player scored
       }
       ball.x = W-FP-BR; ball.vx = -Math.abs(ball.vx);
     }
@@ -819,6 +865,27 @@ function drawCharacter(p, photo, jerseyColor, isPlayer) {
 function drawBall() {
   const bx = ball.x, by = ball.y;
 
+  // Drive shot trail
+  if (driveActive && ballTrail.length > 1) {
+    for (let i = 1; i < ballTrail.length; i++) {
+      const t = i / ballTrail.length;
+      const r = BR * t * 0.9;
+      ctx.beginPath();
+      ctx.arc(ballTrail[i].x, ballTrail[i].y, r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,${Math.floor(160 * t)},0,${t * 0.7})`;
+      ctx.fill();
+    }
+  }
+
+  // Drive outer glow
+  if (driveActive) {
+    const glow = ctx.createRadialGradient(bx, by, BR, bx, by, BR + 16);
+    glow.addColorStop(0, 'rgba(255,180,0,0.6)');
+    glow.addColorStop(1, 'rgba(255,80,0,0)');
+    ctx.beginPath(); ctx.arc(bx, by, BR + 16, 0, Math.PI*2);
+    ctx.fillStyle = glow; ctx.fill();
+  }
+
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath();
@@ -829,17 +896,22 @@ function drawBall() {
   ctx.beginPath();
   ctx.arc(bx, by, BR, 0, Math.PI*2);
   const g = ctx.createRadialGradient(bx - 2, by - 2, 1, bx, by, BR);
-  g.addColorStop(0, '#fff');
-  g.addColorStop(1, '#ccc');
+  if (driveActive) {
+    g.addColorStop(0, '#fff8c0');
+    g.addColorStop(1, '#ff8800');
+  } else {
+    g.addColorStop(0, '#fff');
+    g.addColorStop(1, '#ccc');
+  }
   ctx.fillStyle = g;
   ctx.fill();
 
   // Pentagon patches
-  ctx.fillStyle = '#222';
+  ctx.fillStyle = driveActive ? '#a04000' : '#222';
   drawSoccerBallPatches(bx, by, BR);
 
-  ctx.strokeStyle = '#999';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = driveActive ? '#ff6600' : '#999';
+  ctx.lineWidth = driveActive ? 2 : 1;
   ctx.beginPath(); ctx.arc(bx, by, BR, 0, Math.PI*2); ctx.stroke();
 }
 
@@ -857,6 +929,52 @@ function drawSoccerBallPatches(cx, cy, r) {
     ctx.arc(cx + dx, cy + dy, sr, 0, Math.PI*2);
     ctx.fill();
   });
+}
+
+function drawPowerBar() {
+  if (!driveCharging && drivePower === 0) return;
+  const bw = 54, bh = 8;
+  const bx = player.x - bw / 2;
+  const by = player.y - PR - 22;
+
+  // Background
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 4); ctx.fill();
+
+  // Fill gradient based on power
+  const hue = (1 - drivePower) * 100; // green → yellow → red
+  const barGrad = ctx.createLinearGradient(bx, by, bx + bw, by);
+  barGrad.addColorStop(0, `hsl(${hue},100%,45%)`);
+  barGrad.addColorStop(1, `hsl(${Math.max(0, hue - 30)},100%,40%)`);
+  ctx.fillStyle = barGrad;
+  ctx.beginPath(); ctx.roundRect(bx, by, bw * drivePower, bh, 3); ctx.fill();
+
+  // Border — flash white at full charge
+  ctx.strokeStyle = drivePower >= 1 ? `rgba(255,255,255,${0.5 + 0.5 * Math.sin(Date.now() / 80)})` : 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.stroke();
+
+  // Label
+  ctx.fillStyle = drivePower >= 1 ? '#ffdd00' : '#fff';
+  ctx.font = `bold ${drivePower >= 1 ? '9' : '8'}px sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText(drivePower >= 1 ? 'DRIVE!' : 'POWER', player.x, by - 2);
+}
+
+function drawDriveMessage() {
+  if (driveMsgTimer <= 0) return;
+  const alpha = Math.min(1, driveMsgTimer * 2);
+  const scale = 1 + (1.2 - driveMsgTimer) * 0.4;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(W / 2, H / 2 - 60);
+  ctx.scale(scale, scale);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 36px Segoe UI, sans-serif';
+  ctx.fillStyle = '#ff6600';
+  ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 20;
+  ctx.fillText('DRIVE SHOT!!', 0, 0);
+  ctx.restore();
 }
 
 // Custom cursor (crosshair where mouse is)
@@ -877,6 +995,8 @@ function render() {
   drawCharacter(player, playerPhoto, '#1565c0', true);
   drawCharacter(cpu, cpuPhoto, '#b71c1c', false);
   drawBall();
+  drawPowerBar();
+  drawDriveMessage();
   drawCursor();
 }
 
