@@ -6,20 +6,20 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: 'Courier New', monospace; }
-canvas { display: block; border: 2px solid #333; image-rendering: pixelated; }
+canvas { display: block; border: 2px solid #333; }
 #ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 18px; text-shadow: 2px 2px #000; display: flex; gap: 40px; pointer-events: none; }
 #ui span { background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 4px; }
-#message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 32px; text-align: center; text-shadow: 3px 3px #000; pointer-events: none; display: none; }
+#message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 32px; text-align: center; text-shadow: 3px 3px #000; pointer-events: none; display: none; background: rgba(0,0,0,0.6); padding: 20px 40px; border-radius: 12px; }
 </style>
 </head>
 <body>
 <div id="ui">
   <span>RINGS: <span id="rings">0</span></span>
-  <span>SPEED: <span id="speed">NORMAL</span></span>
-  <span>ZONE: GREEN HILLS</span>
+  <span id="stateLabel">RUNNING</span>
+  <span>GREEN HILLS</span>
 </div>
 <canvas id="c"></canvas>
-<div id="message" id="message"></div>
+<div id="message"></div>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
@@ -28,693 +28,689 @@ canvas.height = 450;
 
 const keys = {};
 document.addEventListener('keydown', e => { keys[e.code] = true; e.preventDefault(); });
-document.addEventListener('keyup', e => { keys[e.code] = false; });
+document.addEventListener('keyup',  e => { keys[e.code] = false; });
 
-// ─── CONSTANTS ───────────────────────────────────────────────────────────────
-const GRAVITY = 0.6;
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const GRAVITY   = 0.55;
 const JUMP_FORCE = -13;
-const BASE_SPEED = 4;
-const BOOST_SPEED = 9;
-const TILE = 32;
+const RUN_SPEED  = 4.5;
+const ROLL_SPEED = 8;
+const GROUND_Y   = 310;
 
-// ─── LEVEL GEOMETRY ──────────────────────────────────────────────────────────
-// Each segment: { type, x, y, w, h } for platforms
-// World is 8000px wide
-function buildLevel() {
-  const segs = [];
-  // Ground segments with gaps
-  const groundY = 320;
+// ── LOOP (rail system) ────────────────────────────────────────────────────────
+// Loop sits with bottom tangent to GROUND_Y
+const LCX = 4600, LCY = GROUND_Y - 130, LR = 130;
+// Entry: Sonic reaches x ≈ LCX - LR (left approach) moving right
+// Exit: Sonic reaches x ≈ LCX + LR (right exit)
+let loopMode = false, loopAngle = 0, loopSpeed = 0;
 
-  // Start flat
-  segs.push({ x: 0,    y: groundY, w: 600,  h: 80, type: 'ground' });
-  // Gap
-  segs.push({ x: 700,  y: groundY, w: 400,  h: 80, type: 'ground' });
-  // Step up
-  segs.push({ x: 1200, y: groundY - 60, w: 300, h: 80, type: 'ground' });
-  // Back down
-  segs.push({ x: 1600, y: groundY, w: 500, h: 80, type: 'ground' });
-  // Gap
-  segs.push({ x: 2200, y: groundY, w: 600, h: 80, type: 'ground' });
-  // Gap
-  segs.push({ x: 2900, y: groundY, w: 200, h: 80, type: 'ground' });
-  // Small platform in gap
-  segs.push({ x: 3200, y: groundY - 80, w: 120, h: 24, type: 'platform' });
-  segs.push({ x: 3400, y: groundY, w: 600, h: 80, type: 'ground' });
-  // Loop approach
-  segs.push({ x: 4100, y: groundY, w: 1200, h: 80, type: 'ground' });
-  // After loop
-  segs.push({ x: 5400, y: groundY, w: 700, h: 80, type: 'ground' });
-  // Step up
-  segs.push({ x: 6200, y: groundY - 50, w: 400, h: 80, type: 'ground' });
-  // Boss arena
-  segs.push({ x: 6700, y: groundY, w: 1200, h: 80, type: 'ground' });
-
-  return segs;
+// ── LEVEL ─────────────────────────────────────────────────────────────────────
+function buildSegs() {
+  const G = GROUND_Y;
+  return [
+    // x,   y,    w,    h,    type
+    [    0,  G,   700,  90, 'g'],  // start flat
+    //  gap 700-850
+    [  850,  G,   500,  90, 'g'],  // after gap
+    [ 1450,  G-60, 280, 90, 'g'],  // step up
+    [ 1830,  G,   480,  90, 'g'],  // back down
+    //  gap 2310-2500
+    [ 2500,  G,   500,  90, 'g'],
+    [ 3100,  G,   180,  90, 'g'],  // small island
+    //  gap
+    [ 3400,  G-70, 130, 24, 'p'],  // floating platform
+    [ 3640,  G,   600,  90, 'g'],
+    // loop approach — long flat
+    [ 4330,  G,   700,  90, 'g'],  // includes loop floor underneath
+    // after loop
+    [ 5130,  G,   800,  90, 'g'],
+    // step up to boss
+    [ 6050,  G-55, 400, 90, 'g'],
+    // boss arena
+    [ 6560,  G,  1300,  90, 'g'],
+  ].map(([x,y,w,h,t]) => ({x,y,w,h,t}));
 }
 
-// Rings
+// Rings: [worldX, worldY]
 function buildRings() {
-  const rings = [];
-  const ry = 280;
-  // Scattered rings along the level
-  const positions = [
-    100, 150, 200, 250,
-    750, 800, 850,
-    1220, 1280, 1340,
-    1650, 1700, 1750, 1800,
-    2250, 2300, 2350, 2400, 2450,
-    2950, 3000,
-    3450, 3500, 3550, 3600,
-    4150, 4200, 4250, 4300, 4350,
-    5450, 5500, 5550, 5600, 5650,
-    6250, 6300, 6350,
-    6750, 6800, 6850, 6900,
+  const G = GROUND_Y;
+  const raw = [
+    // start flat
+    [120,G-36],[180,G-36],[240,G-36],[310,G-36],[380,G-36],[450,G-36],
+    // after first gap
+    [900,G-36],[960,G-36],[1020,G-36],
+    // step up segment (y = G-60, so rings at G-60-36 = G-96)
+    [1480,G-96],[1540,G-96],[1610,G-96],
+    // back on ground
+    [1880,G-36],[1940,G-36],[2000,G-36],[2060,G-36],
+    // after gap2
+    [2560,G-36],[2630,G-36],[2700,G-36],[2780,G-36],
+    // small island
+    [3120,G-36],[3180,G-36],
+    // floating platform (y=G-70, rings at G-70-36=G-106)
+    [3415,G-106],[3465,G-106],
+    // long section
+    [3700,G-36],[3760,G-36],[3820,G-36],[3880,G-36],
+    // loop approach
+    [4380,G-36],[4430,G-36],[4480,G-36],
+    // loop interior rings (high up near top of loop)
+    [LCX-60, LCY-LR+40],[LCX, LCY-LR+20],[LCX+60, LCY-LR+40],
+    // after loop
+    [5200,G-36],[5270,G-36],[5340,G-36],[5410,G-36],[5480,G-36],
+    // step up (G-55)
+    [6080,G-91],[6140,G-91],[6200,G-91],
+    // boss arena
+    [6620,G-36],[6700,G-36],[6780,G-36],[6860,G-36],
   ];
-  for (const x of positions) {
-    rings.push({ x, y: ry, collected: false, angle: 0 });
-  }
-  return rings;
+  return raw.map(([x,y]) => ({x, y, collected: false, angle: 0}));
 }
 
-// Loop segments (drawn as circle arc)
-const LOOP = {
-  cx: 4550, cy: 200, r: 120,
-  // Platforms around the loop
-  segments: [] // handled separately in collision
-};
-
-// ─── STATE ───────────────────────────────────────────────────────────────────
-let state = 'play'; // 'play' | 'boss' | 'win' | 'dead'
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let gameState = 'play'; // play | boss | win | dead
 let ringCount = 0;
-let segments, rings;
+let segs, rings;
 
 const sonic = {
-  x: 100, y: 260,
+  x: 80, y: GROUND_Y - 38,
   vx: 0, vy: 0,
   onGround: false,
-  dir: 1, // 1 = right
-  frame: 0, frameTimer: 0,
-  invincible: 0, // flash frames after boss hit
-  spin: 0,
+  dir: 1,
+  rolling: false,
+  rollSpin: 0,
+  frame: 0, fTimer: 0,
+  invincible: 0,
 };
 
-const camera = { x: 0 };
+const cam = { x: 0 };
 
-// Boss
 const boss = {
-  x: 7200, y: 240,
-  hp: 5,
+  x: 7000, y: GROUND_Y - 80,
   vx: -2, vy: 0,
-  onGround: false,
-  phase: 0, // 0=patrol, 1=charge, 2=shooting
-  timer: 0,
+  hp: 5, alive: true,
+  phase: 0, timer: 0,
   bullets: [],
-  alive: true,
-  hitFlash: 0,
-  arm: 0, // arm wave angle
+  hitFlash: 0, arm: 0,
+  onGround: false,
 };
 
 function reset() {
-  state = 'play';
+  gameState = 'play';
   ringCount = 0;
-  segments = buildLevel();
+  segs = buildSegs();
   rings = buildRings();
-  sonic.x = 100; sonic.y = 260;
-  sonic.vx = 0; sonic.vy = 0;
-  sonic.onGround = false;
-  sonic.invincible = 0;
-  sonic.spin = 0;
-  camera.x = 0;
-  boss.hp = 5; boss.x = 7200; boss.y = 240;
-  boss.vx = -2; boss.alive = true; boss.bullets = [];
-  boss.timer = 0; boss.hitFlash = 0;
+  Object.assign(sonic, {x:80, y:GROUND_Y-38, vx:0, vy:0, onGround:false, dir:1,
+    rolling:false, rollSpin:0, frame:0, fTimer:0, invincible:0});
+  cam.x = 0;
+  loopMode = false;
+  Object.assign(boss, {x:7000, y:GROUND_Y-80, vx:-2, vy:0, hp:5, alive:true,
+    phase:0, timer:0, bullets:[], hitFlash:0, arm:0, onGround:false});
+  document.getElementById('rings').textContent = '0';
   document.getElementById('message').style.display = 'none';
 }
 reset();
 
-// ─── PHYSICS & COLLISION ─────────────────────────────────────────────────────
-function collidePlatforms(entity, w, h) {
+// ── COLLISION ─────────────────────────────────────────────────────────────────
+const SW = 22, SH = 36; // Sonic hitbox width/height
+const RH = 22;           // rolling hitbox (square)
+
+function collide(entity, ew, eh) {
   entity.onGround = false;
-  for (const seg of segments) {
+  for (const s of segs) {
     const ex = entity.x, ey = entity.y;
-    // AABB overlap
-    if (ex + w > seg.x && ex < seg.x + seg.w &&
-        ey + h > seg.y && ey < seg.y + seg.h) {
-      // Coming from above
-      const prevBottom = ey + h - entity.vy;
-      if (prevBottom <= seg.y + 2) {
-        entity.y = seg.y - h;
-        entity.vy = 0;
-        entity.onGround = true;
-      } else if (entity.vy < 0) {
-        entity.y = seg.y + seg.h;
-        entity.vy = 0;
-      } else {
-        // Side collision
-        const overlapLeft = (ex + w) - seg.x;
-        const overlapRight = (seg.x + seg.w) - ex;
-        if (overlapLeft < overlapRight) entity.x = seg.x - w;
-        else entity.x = seg.x + seg.w;
-        entity.vx = 0;
-      }
+    if (ex + ew <= s.x || ex >= s.x + s.w || ey + eh <= s.y || ey >= s.y + s.h) continue;
+    const prevBot = ey + eh - entity.vy;
+    if (entity.vy >= 0 && prevBot <= s.y + 4) {
+      entity.y = s.y - eh;
+      entity.vy = 0;
+      entity.onGround = true;
+    } else if (entity.vy < 0) {
+      entity.y = s.y + s.h;
+      entity.vy = 0;
+    } else {
+      const ol = (ex + ew) - s.x;
+      const or_ = (s.x + s.w) - ex;
+      if (ol < or_) entity.x = s.x - ew;
+      else          entity.x = s.x + s.w;
+      entity.vx = 0;
     }
   }
 }
 
-// Loop collision - treat as a series of angled platforms
-function collideLoop(entity, w, h) {
-  const { cx, cy, r } = LOOP;
-  // Distance from loop center to entity center
-  const ecx = entity.x + w / 2;
-  const ecy = entity.y + h / 2;
-  const dx = ecx - cx, dy = ecy - cy;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  // Inside the loop ring (annulus: r-10 to r+10)
-  if (dist > r - 28 && dist < r + 8) {
-    // Normal points inward
-    const nx = dx / dist, ny = dy / dist;
-    entity.x = cx + nx * (r - 16) - w / 2;
-    entity.y = cy + ny * (r - 16) - h / 2;
-    // Project velocity onto tangent
-    const dot = entity.vx * nx + entity.vy * ny;
-    entity.vx -= dot * nx;
-    entity.vy -= dot * ny;
-    entity.onGround = true;
-    entity.spin += 0.3;
-    return true;
+// ── LOOP RAIL ─────────────────────────────────────────────────────────────────
+// Angles in screen coords: 0=right, PI/2=bottom, PI=left, 3PI/2=top
+// Sonic enters from the left → angle starts at PI (left side of circle)
+// Going right = counterclockwise in screen = angle decreases: PI → PI/2(bottom) → 0(right)→ -PI/2(top)→ -PI
+// Wait, counterclockwise in screen (y-down) means: right→up→left→down = angle goes 0 → -PI/2 → -PI → -3PI/2
+// Sonic going RIGHT, enters LEFT side of loop at PI, goes UP over top:
+// PI → 3PI/2 (top) → 2PI/0 (right) → 2PI is same as 0... exit at right side approaching bottom
+// Hmm. Let me just define: Sonic enters left, travels COUNTER-clockwise in visual terms = increasing angle in screen space.
+// Entry angle = PI (left). Goal: travel 2π (full loop). Exit at angle = PI again (= 3π).
+// During travel: PI → 3PI/2 (top, upside down) → 2PI (right) → 5PI/2 → 3PI (= PI, bottom-left again, exit)
+
+function enterLoop() {
+  if (loopMode) return;
+  // Entry zone: approaching from left, on ground, enough speed
+  if (sonic.x > LCX - LR - 50 && sonic.x < LCX - LR + 40 &&
+      sonic.onGround && sonic.vx > 2.5) {
+    loopMode   = true;
+    loopAngle  = Math.PI; // left side
+    loopSpeed  = Math.max(sonic.vx, 6);
+    sonic.onGround = false;
   }
-  return false;
 }
 
-// ─── UPDATE ──────────────────────────────────────────────────────────────────
-function updateSonic() {
-  if (state === 'win' || state === 'dead') return;
+function updateLoop() {
+  if (!loopMode) return;
 
-  const boosting = keys['Space'];
-  const speed = boosting ? BOOST_SPEED : BASE_SPEED;
-  document.getElementById('speed').textContent = boosting ? 'BOOST' : 'NORMAL';
+  // Gravity component along track (accelerates going down, decelerates going up)
+  // Tangent direction at current angle (counterclockwise = angle increasing):
+  // Tangent = (-sin(a), cos(a)) but we move in increasing angle direction
+  // Gravity = (0, GRAVITY) projected onto tangent
+  const gravTangent = GRAVITY * Math.cos(loopAngle); // cos because tangent-y = cos(a)
+  loopSpeed += gravTangent * 0.3;
+  loopSpeed  = Math.max(loopSpeed, 3);
+
+  loopAngle += loopSpeed / LR;
+
+  // Place Sonic on inside of loop track
+  // Inside means slightly less than LR from center
+  const innerR = LR - 18;
+  sonic.x = LCX + Math.cos(loopAngle) * innerR - SW / 2;
+  sonic.y = LCY + Math.sin(loopAngle) * innerR - SH / 2;
+
+  // Fake vx/vy for animation
+  sonic.vx = -Math.sin(loopAngle) * loopSpeed;
+  sonic.vy  =  Math.cos(loopAngle) * loopSpeed;
+  sonic.dir = sonic.vx >= 0 ? 1 : -1;
+  sonic.rolling = true;
+  sonic.rollSpin += 0.25;
+
+  // Exit: completed just over full revolution → back near PI → angle > 3PI
+  if (loopAngle >= 3 * Math.PI) {
+    loopMode = false;
+    // Place on ground after loop (right side)
+    sonic.x = LCX + LR + 10;
+    sonic.y = GROUND_Y - SH;
+    sonic.vx = loopSpeed;
+    sonic.vy = 0;
+    sonic.onGround = true;
+  }
+}
+
+// ── UPDATE ────────────────────────────────────────────────────────────────────
+function updateSonic() {
+  if (gameState === 'win' || gameState === 'dead') return;
+
+  sonic.rolling = keys['Space'] && (sonic.onGround || Math.abs(sonic.vx) > 4);
+  const speed = sonic.rolling ? ROLL_SPEED : RUN_SPEED;
 
   if (keys['ArrowRight']) { sonic.vx = speed; sonic.dir = 1; }
   else if (keys['ArrowLeft']) { sonic.vx = -speed; sonic.dir = -1; }
-  else sonic.vx *= 0.8;
+  else sonic.vx *= 0.75;
 
-  if ((keys['ArrowUp'] || keys['Space'] && sonic.onGround) && sonic.onGround) {
+  if (keys['ArrowUp'] && sonic.onGround) {
     sonic.vy = JUMP_FORCE;
     sonic.onGround = false;
   }
-  if (keys['ArrowUp'] && sonic.onGround) {
-    sonic.vy = JUMP_FORCE;
-  }
 
   sonic.vy += GRAVITY;
-  sonic.x += sonic.vx;
-  sonic.y += sonic.vy;
+  sonic.x  += sonic.vx;
+  sonic.y  += sonic.vy;
 
-  // Loop
-  const inLoop = collideLoop(sonic, 24, 32);
-  if (!inLoop) collidePlatforms(sonic, 24, 32);
+  enterLoop();
+  if (loopMode) {
+    updateLoop();
+  } else {
+    const h = sonic.rolling ? RH : SH;
+    const w = sonic.rolling ? RH : SW;
+    collide(sonic, w, h);
+  }
 
   // Fall death
-  if (sonic.y > 500) { state = 'dead'; showMessage('YOU DIED\n\nPress R to restart'); }
+  if (sonic.y > 520) { gameState = 'dead'; showMsg('YOU DIED\n\nPress R to restart'); return; }
 
   // Rings
   for (const r of rings) {
-    if (!r.collected && Math.abs(sonic.x - r.x) < 20 && Math.abs(sonic.y - r.y) < 20) {
+    if (!r.collected && Math.abs(sonic.x + SW/2 - r.x) < 22 && Math.abs(sonic.y + SH/2 - r.y) < 22) {
       r.collected = true; ringCount++;
       document.getElementById('rings').textContent = ringCount;
     }
   }
 
-  // Invincibility
   if (sonic.invincible > 0) sonic.invincible--;
 
-  // Animation
-  sonic.frameTimer++;
-  if (sonic.frameTimer > 4) { sonic.frame = (sonic.frame + 1) % 4; sonic.frameTimer = 0; }
-  if (!sonic.onGround) sonic.spin += 0.2;
-  else sonic.spin = 0;
+  // Anim
+  sonic.fTimer++;
+  if (sonic.fTimer > 4) { sonic.frame = (sonic.frame + 1) % 8; sonic.fTimer = 0; }
+  if (sonic.rolling) sonic.rollSpin += 0.25;
+  else if (!sonic.onGround) sonic.rollSpin += 0.15;
 
-  // Camera follows sonic
-  camera.x = Math.max(0, sonic.x - 200);
+  cam.x = Math.max(0, sonic.x - 220);
 
-  // Trigger boss
-  if (sonic.x > 6900 && state === 'play') state = 'boss';
+  // Trigger boss zone
+  if (sonic.x > 6700 && gameState === 'play') gameState = 'boss';
+
+  document.getElementById('stateLabel').textContent =
+    loopMode ? 'LOOPING!' : sonic.rolling ? 'ROLLING' : 'RUNNING';
 }
 
 function updateBoss() {
-  if (state !== 'boss' || !boss.alive) return;
+  if (gameState !== 'boss' || !boss.alive) return;
   boss.timer++;
-  boss.arm += 0.05;
+  boss.arm += 0.06;
   boss.hitFlash = Math.max(0, boss.hitFlash - 1);
 
-  // Boss AI
-  if (boss.timer % 180 === 0) boss.phase = (boss.phase + 1) % 3;
+  if (boss.timer % 200 === 0) boss.phase = (boss.phase + 1) % 3;
 
   if (boss.phase === 0) {
-    // Patrol
-    boss.vx = (sonic.x < boss.x) ? -2 : 2;
+    boss.vx += (sonic.x < boss.x ? -1 : 1) * 0.1;
+    boss.vx = Math.max(-3, Math.min(3, boss.vx));
   } else if (boss.phase === 1) {
-    // Charge
-    boss.vx = (sonic.x < boss.x) ? -5 : 5;
+    boss.vx = sonic.x < boss.x ? -6 : 6;
   } else {
-    // Shoot
-    boss.vx *= 0.9;
-    if (boss.timer % 60 === 0) {
-      const dx = sonic.x - boss.x;
-      const dy = sonic.y - boss.y;
-      const len = Math.sqrt(dx * dx + dy * dy);
-      boss.bullets.push({ x: boss.x, y: boss.y + 20, vx: dx / len * 5, vy: dy / len * 5 });
+    boss.vx *= 0.92;
+    if (boss.timer % 65 === 0) {
+      const dx = sonic.x - boss.x, dy = sonic.y - boss.y;
+      const len = Math.sqrt(dx*dx+dy*dy)||1;
+      boss.bullets.push({x:boss.x+30, y:boss.y+20, vx:dx/len*5.5, vy:dy/len*5.5});
     }
   }
 
   boss.vy += GRAVITY;
-  boss.x += boss.vx;
-  boss.y += boss.vy;
-  collidePlatforms(boss, 60, 70);
+  boss.x  += boss.vx;
+  boss.y  += boss.vy;
+  collide(boss, 60, 80);
+  boss.x = Math.max(6600, Math.min(7700, boss.x));
 
-  // Clamp boss to arena
-  boss.x = Math.max(6750, Math.min(7800, boss.x));
+  for (const b of boss.bullets) { b.x += b.vx; b.y += b.vy; b.vy += 0.1; }
+  boss.bullets = boss.bullets.filter(b => b.y < 520);
 
-  // Bullets
-  for (const b of boss.bullets) { b.x += b.vx; b.y += b.vy; }
-  boss.bullets = boss.bullets.filter(b => b.y < 500 && b.x > camera.x - 100 && b.x < camera.x + 1000);
-
-  // Sonic vs bullet
+  // Bullet hits Sonic
   if (sonic.invincible === 0) {
     for (const b of boss.bullets) {
-      if (Math.abs(sonic.x - b.x) < 16 && Math.abs(sonic.y - b.y) < 16) {
-        sonic.vy = -8; sonic.invincible = 90;
-        if (ringCount > 0) { ringCount = Math.floor(ringCount / 2); document.getElementById('rings').textContent = ringCount; }
-        else { state = 'dead'; showMessage('YOU DIED\n\nPress R to restart'); }
-        b.vy = -99; // remove
+      if (Math.abs(sonic.x+SW/2 - b.x) < 16 && Math.abs(sonic.y+SH/2 - b.y) < 16) {
+        takeDamage(); b.vy = -999;
       }
     }
   }
 
-  // Sonic stomps boss (ArrowUp while above boss)
-  if (keys['ArrowUp'] && !sonic.onGround &&
-      sonic.x + 24 > boss.x + 10 && sonic.x < boss.x + 50 &&
-      sonic.y + 32 > boss.y && sonic.y < boss.y + 30) {
+  // Sonic stomps boss from above (UP key or rolling)
+  const onTopOfBoss = sonic.x + SW > boss.x + 8 && sonic.x < boss.x + 52 &&
+                      sonic.y + SH > boss.y     && sonic.y + SH < boss.y + 30 &&
+                      sonic.vy > 0;
+  if (onTopOfBoss && (keys['ArrowUp'] || sonic.rolling)) {
     boss.hp--;
-    boss.hitFlash = 20;
-    sonic.vy = JUMP_FORCE * 0.7;
+    boss.hitFlash = 25;
+    sonic.vy = -10;
     if (boss.hp <= 0) {
       boss.alive = false;
-      state = 'win';
-      showMessage('YOU WIN!\n\nDr. Eggman defeated!\nRings: ' + ringCount + '\n\nPress R to play again');
+      gameState = 'win';
+      showMsg('YOU WIN!\n\nEggman defeated!\nRings: ' + ringCount + '\n\nPress R to play again');
     }
+    return;
   }
 
-  // Touch boss (take damage)
+  // Body contact
   if (sonic.invincible === 0 &&
-      sonic.x + 24 > boss.x + 5 && sonic.x < boss.x + 55 &&
-      sonic.y + 32 > boss.y + 10 && sonic.y < boss.y + 65) {
-    sonic.vy = -8; sonic.invincible = 90;
-    sonic.vx = sonic.x < boss.x ? -6 : 6;
-    if (ringCount > 0) { ringCount = Math.floor(ringCount / 2); document.getElementById('rings').textContent = ringCount; }
-    else { state = 'dead'; showMessage('YOU DIED\n\nPress R to restart'); }
+      sonic.x + SW > boss.x + 4 && sonic.x < boss.x + 56 &&
+      sonic.y + SH > boss.y + 8 && sonic.y < boss.y + 72) {
+    takeDamage();
   }
 }
 
-function showMessage(text) {
+function takeDamage() {
+  sonic.vy = -9;
+  sonic.vx = sonic.x < boss.x ? -5 : 5;
+  sonic.invincible = 100;
+  if (ringCount > 0) {
+    ringCount = Math.floor(ringCount / 2);
+    document.getElementById('rings').textContent = ringCount;
+  } else {
+    gameState = 'dead';
+    showMsg('YOU DIED\n\nPress R to restart');
+  }
+}
+
+function showMsg(text) {
   const el = document.getElementById('message');
   el.style.display = 'block';
   el.innerHTML = text.replace(/\n/g, '<br>');
 }
 
-// ─── DRAWING ─────────────────────────────────────────────────────────────────
+// ── DRAW ──────────────────────────────────────────────────────────────────────
+function ws(x) { return x - cam.x; } // world→screen
+
 function drawSky() {
-  // Gradient sky
-  const grad = ctx.createLinearGradient(0, 0, 0, 300);
-  grad.addColorStop(0, '#5bb8f5');
-  grad.addColorStop(1, '#a8d8f0');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 800, 450);
+  const g = ctx.createLinearGradient(0,0,0,280);
+  g.addColorStop(0,'#4aa8e8'); g.addColorStop(1,'#9cd8f5');
+  ctx.fillStyle = g; ctx.fillRect(0,0,800,450);
 }
 
 function drawClouds(t) {
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  const clouds = [
-    { x: 100, y: 60, r: 30 },
-    { x: 200, y: 50, r: 22 },
-    { x: 300, y: 75, r: 18 },
-    { x: 500, y: 55, r: 35 },
-    { x: 620, y: 45, r: 25 },
-    { x: 700, y: 70, r: 20 },
-  ];
-  for (const c of clouds) {
-    const cx = ((c.x - t * 0.2) % 850 + 850) % 850;
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  const cl = [{x:80,y:55,r:28},{x:210,y:42,r:22},{x:360,y:60,r:18},
+              {x:500,y:48,r:32},{x:640,y:38,r:24},{x:760,y:65,r:20}];
+  for (const c of cl) {
+    const x = ((c.x - t * 0.18) % 860 + 860) % 860;
     ctx.beginPath();
-    ctx.arc(cx, c.y, c.r, 0, Math.PI * 2);
-    ctx.arc(cx + c.r * 0.8, c.y - 8, c.r * 0.7, 0, Math.PI * 2);
-    ctx.arc(cx + c.r * 1.5, c.y, c.r * 0.85, 0, Math.PI * 2);
+    ctx.arc(x,c.y,c.r,0,Math.PI*2);
+    ctx.arc(x+c.r*0.9,c.y-8,c.r*0.65,0,Math.PI*2);
+    ctx.arc(x+c.r*1.7,c.y,c.r*0.8,0,Math.PI*2);
     ctx.fill();
   }
 }
 
 function drawHills() {
-  ctx.fillStyle = '#4a9e3f';
-  // Far hills (parallax)
-  const off = camera.x * 0.3;
-  for (let i = 0; i < 5; i++) {
-    const hx = (i * 300 - off % 300) - 50;
-    ctx.beginPath();
-    ctx.ellipse(hx, 380, 180, 100, 0, Math.PI, 0);
-    ctx.fill();
+  // far hills
+  ctx.fillStyle = '#3d8f35';
+  const o1 = cam.x * 0.25;
+  for (let i=0;i<6;i++){
+    const hx=(i*280-o1%280)-60;
+    ctx.beginPath(); ctx.ellipse(hx,370,160,90,0,Math.PI,0); ctx.fill();
   }
-  // Closer hills
-  ctx.fillStyle = '#5dbf50';
-  const off2 = camera.x * 0.6;
-  for (let i = 0; i < 6; i++) {
-    const hx = (i * 200 - off2 % 200) - 30;
-    ctx.beginPath();
-    ctx.ellipse(hx, 390, 120, 70, 0, Math.PI, 0);
-    ctx.fill();
+  // near hills
+  ctx.fillStyle = '#52b048';
+  const o2 = cam.x * 0.55;
+  for (let i=0;i<7;i++){
+    const hx=(i*190-o2%190)-30;
+    ctx.beginPath(); ctx.ellipse(hx,385,110,65,0,Math.PI,0); ctx.fill();
   }
 }
 
-function worldToScreen(x) { return x - camera.x; }
-
-function drawSegments() {
-  for (const seg of segments) {
-    const sx = worldToScreen(seg.x);
-    if (sx > 900 || sx + seg.w < -50) continue;
-
-    if (seg.type === 'ground') {
-      // Grass top
-      ctx.fillStyle = '#5dbf50';
-      ctx.fillRect(sx, seg.y, seg.w, 12);
-      // Darker stripe
-      ctx.fillStyle = '#4a9e3f';
-      ctx.fillRect(sx, seg.y + 12, seg.w, 6);
-      // Dirt
-      ctx.fillStyle = '#8b5a2b';
-      ctx.fillRect(sx, seg.y + 18, seg.w, seg.h - 18);
-      // Soil stripes
-      ctx.fillStyle = '#7a4f25';
-      for (let i = 0; i < seg.w; i += 30) {
-        ctx.fillRect(sx + i, seg.y + 22, 2, seg.h - 22);
-      }
+function drawSegs() {
+  for (const s of segs) {
+    const sx = ws(s.x);
+    if (sx > 850 || sx+s.w < -10) continue;
+    if (s.t === 'g') {
+      ctx.fillStyle='#52b048'; ctx.fillRect(sx,s.y,s.w,10);
+      ctx.fillStyle='#3d8f35'; ctx.fillRect(sx,s.y+10,s.w,5);
+      ctx.fillStyle='#7a4e28'; ctx.fillRect(sx,s.y+15,s.w,s.h-15);
+      ctx.fillStyle='#6b4220';
+      for(let i=0;i<s.w;i+=28) ctx.fillRect(sx+i,s.y+20,2,s.h-20);
     } else {
-      // Floating platform
-      ctx.fillStyle = '#8b5a2b';
-      ctx.fillRect(sx, seg.y, seg.w, seg.h);
-      ctx.fillStyle = '#5dbf50';
-      ctx.fillRect(sx, seg.y, seg.w, 8);
+      ctx.fillStyle='#7a4e28'; ctx.fillRect(sx,s.y,s.w,s.h);
+      ctx.fillStyle='#52b048'; ctx.fillRect(sx,s.y,s.w,7);
     }
   }
 }
 
 function drawLoop() {
-  const { cx, cy, r } = LOOP;
-  const sx = worldToScreen(cx);
+  const sx = ws(LCX);
   if (sx < -200 || sx > 1000) return;
 
-  // Loop track
-  ctx.strokeStyle = '#8b5a2b';
-  ctx.lineWidth = 20;
-  ctx.beginPath();
-  ctx.arc(sx, cy, r, 0, Math.PI * 2);
-  ctx.stroke();
+  // Draw loop pipe — outer
+  ctx.strokeStyle = '#7a4e28';
+  ctx.lineWidth = 22;
+  ctx.beginPath(); ctx.arc(sx, LCY, LR, 0, Math.PI*2); ctx.stroke();
 
-  ctx.strokeStyle = '#5dbf50';
-  ctx.lineWidth = 8;
-  ctx.beginPath();
-  ctx.arc(sx, cy, r - 6, 0, Math.PI * 2);
-  ctx.stroke();
+  // grass stripe on loop
+  ctx.strokeStyle = '#52b048';
+  ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.arc(sx, LCY, LR-4, 0, Math.PI*2); ctx.stroke();
+
+  // Inner dark ring (tube interior)
+  ctx.strokeStyle = '#5a3a18';
+  ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(sx, LCY, LR-14, 0, Math.PI*2); ctx.stroke();
+
+  // Entry and exit ramps — flat strips connecting loop to ground
+  // Left entry strip
+  ctx.fillStyle = '#52b048';
+  ctx.fillRect(sx - LR - 60, GROUND_Y, 70, 8);
+  ctx.fillStyle = '#7a4e28';
+  ctx.fillRect(sx - LR - 60, GROUND_Y+8, 70, 30);
+
+  // Right exit strip
+  ctx.fillRect(sx + LR - 10, GROUND_Y, 70, 8);
+  ctx.fillStyle = '#7a4e28';
+  ctx.fillRect(sx + LR - 10, GROUND_Y+8, 70, 30);
 }
 
 function drawRings() {
-  for (const ring of rings) {
-    if (ring.collected) continue;
-    const sx = worldToScreen(ring.x);
+  for (const r of rings) {
+    if (r.collected) continue;
+    const sx = ws(r.x);
     if (sx < -20 || sx > 820) continue;
-    ring.angle += 0.05;
+    r.angle += 0.05;
 
-    // Ring glow
-    const grd = ctx.createRadialGradient(sx, ring.y, 2, sx, ring.y, 12);
-    grd.addColorStop(0, '#fffbe6');
-    grd.addColorStop(1, 'rgba(255,215,0,0)');
+    const grd = ctx.createRadialGradient(sx,r.y,1,sx,r.y,11);
+    grd.addColorStop(0,'#fffacc'); grd.addColorStop(1,'rgba(255,215,0,0)');
     ctx.fillStyle = grd;
-    ctx.beginPath(); ctx.arc(sx, ring.y, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(sx,r.y,11,0,Math.PI*2); ctx.fill();
 
-    // Ring shape (ellipse, rotating)
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.ellipse(sx, ring.y, 10, 10 * Math.abs(Math.cos(ring.angle)), 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = '#ffec6e';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.ellipse(sx, ring.y - 3, 6, 6 * Math.abs(Math.cos(ring.angle)), 0, 0, Math.PI * 2);
+    ctx.ellipse(sx,r.y, 9, 9*Math.abs(Math.cos(r.angle)), 0, 0, Math.PI*2);
     ctx.stroke();
   }
 }
 
+// ─ Sonic sprite ───────────────────────────────────────────────────────────────
 function drawSonic() {
-  const sx = worldToScreen(sonic.x);
-  const sy = sonic.y;
+  if (sonic.invincible > 0 && Math.floor(sonic.invincible/5)%2===0) return;
 
-  if (sonic.invincible > 0 && Math.floor(sonic.invincible / 5) % 2 === 0) return;
+  const sx = ws(sonic.x) + SW/2;
+  const sy = sonic.y + SH/2;
 
   ctx.save();
-  ctx.translate(sx + 12, sy + 16);
-  ctx.scale(sonic.dir, 1);
+  ctx.translate(sx, sy);
+  ctx.scale(sonic.dir, 1); // flip for direction
 
-  if (!sonic.onGround) {
-    // Spin in air
-    ctx.rotate(sonic.spin);
+  if (sonic.rolling || loopMode) {
+    drawRollBall();
+  } else {
+    drawStanding();
   }
-
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.beginPath();
-  ctx.ellipse(0, 18, 14, 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Body
-  ctx.fillStyle = '#2563eb'; // blue body
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 13, 11, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Head
-  ctx.fillStyle = '#2563eb';
-  ctx.beginPath();
-  ctx.arc(2, -12, 11, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Spines (3)
-  ctx.fillStyle = '#1a4bbf';
-  const spineData = [[-2, -22, -14, -28], [2, -23, -8, -32], [6, -21, 0, -34]];
-  for (const [bx, by, tx, ty] of spineData) {
-    ctx.beginPath();
-    ctx.moveTo(bx, by);
-    ctx.lineTo(tx, ty);
-    ctx.lineTo(bx - 3, by);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  // Face / eye
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(8, -13, 5, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#000';
-  ctx.beginPath(); ctx.arc(10, -13, 2.5, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(11, -14, 1, 0, Math.PI * 2); ctx.fill();
-
-  // Nose
-  ctx.fillStyle = '#1a1a1a';
-  ctx.beginPath(); ctx.arc(14, -10, 1.5, 0, Math.PI * 2); ctx.fill();
-
-  // Belly (tan)
-  ctx.fillStyle = '#f5c87a';
-  ctx.beginPath();
-  ctx.ellipse(2, 2, 7, 8, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Legs animation
-  const legAngle = sonic.onGround ? Math.sin(sonic.frame * 1.5) * 0.5 : 0.3;
-  ctx.strokeStyle = '#2563eb';
-  ctx.lineWidth = 5;
-  ctx.lineCap = 'round';
-
-  // Back leg
-  ctx.beginPath();
-  ctx.moveTo(-2, 8);
-  ctx.lineTo(-2 - Math.sin(legAngle) * 10, 8 + Math.cos(legAngle) * 10);
-  ctx.stroke();
-  // Front leg
-  ctx.beginPath();
-  ctx.moveTo(4, 8);
-  ctx.lineTo(4 + Math.sin(legAngle) * 10, 8 + Math.cos(legAngle) * 10);
-  ctx.stroke();
-
-  // Shoes
-  ctx.fillStyle = '#e63946';
-  ctx.beginPath();
-  ctx.ellipse(-2 - Math.sin(legAngle) * 10, 8 + Math.cos(legAngle) * 10 + 3, 6, 3, 0.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(4 + Math.sin(legAngle) * 10, 8 + Math.cos(legAngle) * 10 + 3, 6, 3, -0.2, 0, Math.PI * 2);
-  ctx.fill();
 
   ctx.restore();
+}
+
+function drawRollBall() {
+  sonic.rollSpin += 0.18;
+  const r = 14;
+
+  // Outer circle (blue)
+  ctx.fillStyle = '#1e4fd8';
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
+
+  // Spin pattern (darker wedges)
+  ctx.save();
+  ctx.rotate(sonic.rollSpin);
+  ctx.fillStyle = '#163ab0';
+  for (let i=0;i<4;i++){
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.arc(0,0,r, i*Math.PI/2, i*Math.PI/2 + 0.6);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  // Highlight
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.beginPath(); ctx.ellipse(-4,-4,5,4,Math.PI/4,0,Math.PI*2); ctx.fill();
+
+  // Tiny spike tips visible through roll
+  ctx.fillStyle='#163ab0';
+  ctx.save(); ctx.rotate(sonic.rollSpin);
+  for(let i=0;i<3;i++){
+    ctx.beginPath();
+    const a = i*(Math.PI*2/3);
+    ctx.moveTo(Math.cos(a)*(r-3), Math.sin(a)*(r-3));
+    ctx.lineTo(Math.cos(a)*( r+4), Math.sin(a)*(r+4));
+    ctx.lineTo(Math.cos(a+0.25)*(r-3), Math.sin(a+0.25)*(r-3));
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawStanding() {
+  const legA = sonic.onGround ? Math.sin(sonic.frame * 0.9) * 0.45 : 0.2;
+
+  // ── Shoes ──
+  ctx.fillStyle = '#e8192c';
+  // Back shoe
+  ctx.beginPath();
+  ctx.ellipse(-4 - Math.sin(legA)*9, 16 + Math.cos(legA)*8, 8, 4, 0.15, 0, Math.PI*2);
+  ctx.fill();
+  // Front shoe
+  ctx.beginPath();
+  ctx.ellipse( 4 + Math.sin(legA)*9, 16 + Math.cos(legA)*8, 8, 4, -0.15, 0, Math.PI*2);
+  ctx.fill();
+  // White shoe stripe
+  ctx.fillStyle='#fff';
+  ctx.fillRect(-8 - Math.sin(legA)*9, 14 + Math.cos(legA)*8, 8, 2);
+  ctx.fillRect( 1 + Math.sin(legA)*9, 14 + Math.cos(legA)*8, 8, 2);
+
+  // ── Legs ──
+  ctx.strokeStyle='#1e4fd8'; ctx.lineWidth=6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-2,9);
+  ctx.lineTo(-4 - Math.sin(legA)*9, 16 + Math.cos(legA)*8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4,9);
+  ctx.lineTo( 4 + Math.sin(legA)*9, 16 + Math.cos(legA)*8); ctx.stroke();
+
+  // ── Body ──
+  ctx.fillStyle='#1e4fd8';
+  ctx.beginPath(); ctx.ellipse(0,3,11,9,0,0,Math.PI*2); ctx.fill();
+
+  // ── Belly (tan) ──
+  ctx.fillStyle='#f0c060';
+  ctx.beginPath(); ctx.ellipse(3,5,7,7,0,0,Math.PI*2); ctx.fill();
+
+  // ── Arms ── (little stubs)
+  ctx.fillStyle='#fff'; // white gloves
+  // back arm
+  ctx.beginPath(); ctx.ellipse(-12,0,5,4,0.4,0,Math.PI*2); ctx.fill();
+  // front arm
+  ctx.beginPath(); ctx.ellipse( 12,0,5,4,-0.4,0,Math.PI*2); ctx.fill();
+
+  // ── Head ──
+  ctx.fillStyle='#1e4fd8';
+  ctx.beginPath(); ctx.arc(2,-11,13,0,Math.PI*2); ctx.fill();
+
+  // ── Spines (backward = pointing left when facing right) ──
+  ctx.fillStyle='#163ab0';
+  // Spine 1 — top back
+  ctx.beginPath();
+  ctx.moveTo(-6,-12); ctx.lineTo(-22,-22); ctx.lineTo(-9,-7); ctx.closePath(); ctx.fill();
+  // Spine 2 — mid back
+  ctx.beginPath();
+  ctx.moveTo(-8,-7); ctx.lineTo(-24,-14); ctx.lineTo(-10,-3); ctx.closePath(); ctx.fill();
+  // Spine 3 — low back
+  ctx.beginPath();
+  ctx.moveTo(-7,-2); ctx.lineTo(-22,-5); ctx.lineTo(-9,3); ctx.closePath(); ctx.fill();
+
+  // ── Muzzle ──
+  ctx.fillStyle='#f0c060';
+  ctx.beginPath(); ctx.ellipse(10,-10,8,6,0,0,Math.PI*2); ctx.fill();
+
+  // ── Nose ──
+  ctx.fillStyle='#333';
+  ctx.beginPath(); ctx.arc(17,-12,2,0,Math.PI*2); ctx.fill();
+
+  // ── Eye (large, green iris) ──
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(8,-14,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#22aa44'; // green iris
+  ctx.beginPath(); ctx.arc(9,-14,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.arc(10,-14,2.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; // catchlight
+  ctx.beginPath(); ctx.arc(11,-15,1,0,Math.PI*2); ctx.fill();
+
+  // Eyebrow (attitude)
+  ctx.strokeStyle='#163ab0'; ctx.lineWidth=2.5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(4,-21); ctx.lineTo(13,-19); ctx.stroke();
 }
 
 function drawBoss() {
   if (!boss.alive) return;
-  const sx = worldToScreen(boss.x);
-  if (sx < -100 || sx > 950) return;
+  const sx = ws(boss.x);
+  if (sx < -120 || sx > 950) return;
 
-  ctx.save();
-  ctx.translate(sx + 30, boss.y);
+  ctx.save(); ctx.translate(sx+30, boss.y);
+  if (boss.hitFlash > 0 && Math.floor(boss.hitFlash/3)%2===0) ctx.filter='brightness(4) saturate(0)';
 
-  if (boss.hitFlash > 0 && Math.floor(boss.hitFlash / 3) % 2 === 0) {
-    ctx.filter = 'brightness(3) saturate(0)';
-  }
+  // Legs
+  ctx.fillStyle='#444'; ctx.fillRect(-22,52,18,22); ctx.fillRect(4,52,18,22);
+  // Flames
+  ctx.fillStyle='#ff8800';
+  ctx.beginPath(); ctx.moveTo(-13,74); ctx.lineTo(-22,88+Math.random()*8); ctx.lineTo(-4,74); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(13,74); ctx.lineTo(4,88+Math.random()*8); ctx.lineTo(22,74); ctx.closePath(); ctx.fill();
 
-  // Egg-shaped body (Eggman mech)
-  ctx.fillStyle = '#cc2222';
-  ctx.beginPath();
-  ctx.ellipse(0, 20, 30, 35, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Dome / cockpit
-  ctx.fillStyle = '#555';
-  ctx.beginPath();
-  ctx.arc(0, -10, 25, Math.PI, 0);
-  ctx.fill();
-  ctx.fillStyle = '#88ccff';
-  ctx.beginPath();
-  ctx.arc(0, -10, 18, Math.PI, 0);
-  ctx.fill();
-
-  // Eggman inside
-  ctx.fillStyle = '#f5c87a';
-  ctx.beginPath();
-  ctx.arc(0, -10, 10, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#cc2222';
-  ctx.fillRect(-8, -18, 16, 5); // hat
-  ctx.fillStyle = '#000';
-  ctx.fillRect(-5, -12, 4, 3); // eyes
-  ctx.fillRect(1, -12, 4, 3);
-  // Mustache
-  ctx.fillStyle = '#cc8844';
-  ctx.fillRect(-8, -8, 16, 3);
+  // Body (red egg)
+  ctx.fillStyle='#cc2020';
+  ctx.beginPath(); ctx.ellipse(0,22,32,38,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ee3030';
+  ctx.beginPath(); ctx.ellipse(-6,14,15,18,0,0,Math.PI*2); ctx.fill();
 
   // Arms
-  const wave = Math.sin(boss.arm) * 20;
-  ctx.strokeStyle = '#cc2222';
-  ctx.lineWidth = 8;
-  ctx.lineCap = 'round';
-  // Left arm
-  ctx.beginPath();
-  ctx.moveTo(-28, 10);
-  ctx.lineTo(-50, 10 + wave);
-  ctx.stroke();
-  ctx.fillStyle = '#888';
-  ctx.beginPath();
-  ctx.arc(-50, 10 + wave, 10, 0, Math.PI * 2);
-  ctx.fill();
+  const wave = Math.sin(boss.arm)*18;
+  ctx.strokeStyle='#cc2020'; ctx.lineWidth=9; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-30,12); ctx.lineTo(-52,12+wave); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo( 30,12); ctx.lineTo( 52,12-wave); ctx.stroke();
+  ctx.fillStyle='#888';
+  ctx.beginPath(); ctx.arc(-52,12+wave,11,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( 52,12-wave,11,0,Math.PI*2); ctx.fill();
 
-  // Right arm
-  ctx.beginPath();
-  ctx.moveTo(28, 10);
-  ctx.lineTo(50, 10 - wave);
-  ctx.stroke();
-  ctx.fillStyle = '#888';
-  ctx.beginPath();
-  ctx.arc(50, 10 - wave, 10, 0, Math.PI * 2);
-  ctx.fill();
+  // Cockpit dome
+  ctx.fillStyle='#444';
+  ctx.beginPath(); ctx.arc(0,-12,27,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#6ab5f0';
+  ctx.beginPath(); ctx.arc(0,-12,20,Math.PI,0); ctx.fill();
 
-  // Legs / base thruster
-  ctx.fillStyle = '#444';
-  ctx.fillRect(-20, 48, 16, 20);
-  ctx.fillRect(4, 48, 16, 20);
-  // Exhaust flame
-  ctx.fillStyle = '#ff8800';
-  ctx.beginPath();
-  ctx.moveTo(-12, 68); ctx.lineTo(-20, 80 + Math.random() * 10); ctx.lineTo(-4, 68); ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(12, 68); ctx.lineTo(4, 80 + Math.random() * 10); ctx.lineTo(20, 68); ctx.closePath();
-  ctx.fill();
+  // Eggman silhouette inside dome
+  ctx.fillStyle='#f5c070';
+  ctx.beginPath(); ctx.arc(0,-12,10,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#cc2020';
+  ctx.fillRect(-9,-20,18,6);
+  ctx.fillStyle='#111';
+  ctx.fillRect(-6,-14,4,3); ctx.fillRect(2,-14,4,3);
+  ctx.fillStyle='#cc8844'; ctx.fillRect(-9,-9,18,3);
 
   // HP bar
-  ctx.fillStyle = '#000';
-  ctx.fillRect(-30, -50, 60, 10);
-  ctx.fillStyle = '#f00';
-  ctx.fillRect(-30, -50, 60, 10);
-  ctx.fillStyle = '#0f0';
-  ctx.fillRect(-30, -50, 60 * (boss.hp / 5), 10);
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(-30, -50, 60, 10);
+  ctx.fillStyle='#111'; ctx.fillRect(-32,-52,64,11);
+  ctx.fillStyle='#0f0'; ctx.fillRect(-32,-52,64*(boss.hp/5),11);
+  ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.strokeRect(-32,-52,64,11);
+  ctx.fillStyle='#fff'; ctx.font='9px monospace'; ctx.fillText('HP',−30,−43);
 
-  ctx.filter = 'none';
-  ctx.restore();
+  ctx.filter='none'; ctx.restore();
 
   // Bullets
   for (const b of boss.bullets) {
-    const bsx = worldToScreen(b.x);
-    ctx.fillStyle = '#ff4400';
-    ctx.beginPath();
-    ctx.arc(bsx, b.y, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ffaa00';
-    ctx.beginPath();
-    ctx.arc(bsx, b.y, 3, 0, Math.PI * 2);
-    ctx.fill();
+    const bx = ws(b.x);
+    ctx.fillStyle='#ff4400'; ctx.beginPath(); ctx.arc(bx,b.y,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffcc00'; ctx.beginPath(); ctx.arc(bx,b.y,3,0,Math.PI*2); ctx.fill();
   }
 }
 
 function drawHUD() {
-  // Speed lines when boosting
-  if (keys['Space'] && state === 'play') {
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 8; i++) {
-      const y = 80 + i * 50;
-      const len = 60 + Math.random() * 80;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(len, y);
-      ctx.stroke();
+  // Speed lines while rolling
+  if (sonic.rolling && gameState!=='dead' && gameState!=='win') {
+    ctx.strokeStyle='rgba(180,220,255,0.2)'; ctx.lineWidth=1.5;
+    for (let i=0;i<10;i++){
+      const y = 40+i*42, len=50+Math.random()*100;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(len,y); ctx.stroke();
     }
   }
-
-  // Boss hint
-  if (state === 'boss' && boss.alive) {
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    ctx.font = '14px Courier New';
-    ctx.fillText('Press ↑ while above boss to stomp!', 10, 430);
+  if ((gameState==='boss'||gameState==='play'&&sonic.x>6200) && boss.alive) {
+    ctx.fillStyle='rgba(255,255,255,0.75)'; ctx.font='13px Courier New';
+    ctx.fillText('Jump on boss with ↑ or SPACE roll to stomp!', 10, 435);
   }
 }
 
-function drawBackground(t) {
-  drawSky();
-  drawClouds(t);
-  drawHills();
-}
-
-// ─── MAIN LOOP ────────────────────────────────────────────────────────────────
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
 let t = 0;
 function loop() {
   t++;
-
-  if (keys['KeyR'] && (state === 'dead' || state === 'win')) reset();
+  if (keys['KeyR'] && (gameState==='dead'||gameState==='win')) reset();
 
   updateSonic();
   updateBoss();
 
-  ctx.clearRect(0, 0, 800, 450);
-  drawBackground(t);
+  ctx.clearRect(0,0,800,450);
+  drawSky(); drawClouds(t); drawHills();
   drawLoop();
-  drawSegments();
+  drawSegs();
   drawRings();
   drawBoss();
   drawSonic();
@@ -722,7 +718,6 @@ function loop() {
 
   requestAnimationFrame(loop);
 }
-
 loop();
 </script>
 </body>
