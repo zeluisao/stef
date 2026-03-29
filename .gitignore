@@ -1,0 +1,24 @@
+# MRI / medical imaging files
+*.dcm
+*.dicom
+*.nii
+*.nii.gz
+*.mnc
+*.img
+*.hdr
+*.mgh
+*.mgz
+
+# Generic sensitive/data files
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.tiff
+*.tif
+*.zip
+*.tar.gz
+
+# Environment / secrets
+.env
+.env.*
