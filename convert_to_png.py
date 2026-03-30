@@ -16,8 +16,26 @@ except ImportError:
     sys.exit(1)
 
 DICOM_FOLDER = r"C:\Users\jlram\OneDrive\Documents\Jose\IMAGES\DICOMS"
-OUTPUT_FOLDER = r"\\wsl$\Ubuntu\home\user\stef\mri_images"
 NUM_SLICES = 20
+
+
+def find_wsl_output_folder():
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["wsl", "-l", "-q"],
+            capture_output=True, timeout=5
+        )
+        # Output may have null bytes (UTF-16 encoded)
+        distros = result.stdout.decode("utf-16-le", errors="ignore").strip().splitlines()
+        distros = [d.strip() for d in distros if d.strip()]
+        if distros:
+            distro = distros[0]
+            print(f"Detected WSL distro: {distro}")
+            return rf"\\wsl$\{distro}\home\user\stef\mri_images"
+    except Exception as e:
+        print(f"Could not detect WSL distro: {e}")
+    return None
 
 
 def normalize(pixel_array):
@@ -32,6 +50,11 @@ def main():
     if not os.path.isdir(DICOM_FOLDER):
         print(f"DICOM folder not found: {DICOM_FOLDER}")
         sys.exit(1)
+
+    OUTPUT_FOLDER = find_wsl_output_folder()
+    if not OUTPUT_FOLDER:
+        OUTPUT_FOLDER = r"C:\Users\jlram\mri_images"
+        print(f"WSL not found, saving locally to: {OUTPUT_FOLDER}")
 
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
