@@ -16,26 +16,8 @@ except ImportError:
     sys.exit(1)
 
 DICOM_FOLDER = r"C:\Users\jlram\OneDrive\Documents\Jose\IMAGES\DICOMS"
+OUTPUT_FOLDER = r"C:\Users\jlram\mri_images"
 NUM_SLICES = 20
-
-
-def find_wsl_output_folder():
-    import subprocess
-    try:
-        result = subprocess.run(
-            ["wsl", "-l", "-q"],
-            capture_output=True, timeout=5
-        )
-        # Output may have null bytes (UTF-16 encoded)
-        distros = result.stdout.decode("utf-16-le", errors="ignore").strip().splitlines()
-        distros = [d.strip() for d in distros if d.strip()]
-        if distros:
-            distro = distros[0]
-            print(f"Detected WSL distro: {distro}")
-            return rf"\\wsl$\{distro}\home\user\stef\mri_images"
-    except Exception as e:
-        print(f"Could not detect WSL distro: {e}")
-    return None
 
 
 def normalize(pixel_array):
@@ -51,14 +33,8 @@ def main():
         print(f"DICOM folder not found: {DICOM_FOLDER}")
         sys.exit(1)
 
-    OUTPUT_FOLDER = find_wsl_output_folder()
-    if not OUTPUT_FOLDER:
-        OUTPUT_FOLDER = r"C:\Users\jlram\mri_images"
-        print(f"WSL not found, saving locally to: {OUTPUT_FOLDER}")
-
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-    # Load all valid DICOM files
     files = []
     for name in sorted(os.listdir(DICOM_FOLDER)):
         path = os.path.join(DICOM_FOLDER, name)
@@ -78,7 +54,6 @@ def main():
         print("No valid DICOM files found.")
         sys.exit(1)
 
-    # Pick evenly spaced slices
     indices = np.linspace(0, len(files) - 1, NUM_SLICES, dtype=int)
     selected = [files[i] for i in indices]
 
@@ -88,9 +63,11 @@ def main():
         img = Image.fromarray(img_array, mode="L")
         out_path = os.path.join(OUTPUT_FOLDER, f"slice_{i+1:02d}_inst{instance}.png")
         img.save(out_path)
-        print(f"  Saved: {out_path}")
+        print(f"  Saved: slice_{i+1:02d}_inst{instance}.png")
 
     print(f"\nDone. {NUM_SLICES} slices saved to: {OUTPUT_FOLDER}")
+    print("\nNext step: run this in Command Prompt to find your WSL distro name:")
+    print("  wsl -l -q")
 
 
 if __name__ == "__main__":
