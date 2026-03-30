@@ -1,11 +1,12 @@
 """
-Convert key DICOM slices to PNG for AI review.
+Convert DICOM slices to PNG grouped by series.
 Usage: python convert_to_png.py
 Requires: pip install pydicom pillow numpy
 """
 
 import os
 import sys
+from collections import defaultdict
 
 try:
     import pydicom
@@ -17,7 +18,7 @@ except ImportError:
 
 DICOM_FOLDER = r"C:\Users\jlram\OneDrive\Documents\Jose\IMAGES\DICOMS"
 OUTPUT_FOLDER = r"C:\Users\jlram\mri_images"
-NUM_SLICES = 20
+NUM_SLICES_PER_SERIES = 30
 
 
 def normalize(pixel_array):
@@ -33,41 +34,48 @@ def main():
         print(f"DICOM folder not found: {DICOM_FOLDER}")
         sys.exit(1)
 
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
-    files = []
+    # Group files by series
+    series = defaultdict(list)
     for name in sorted(os.listdir(DICOM_FOLDER)):
         path = os.path.join(DICOM_FOLDER, name)
         if not os.path.isfile(path):
             continue
         try:
-            ds = pydicom.dcmread(path)
+            ds = pydicom.dcmread(path, stop_before_pixels=True)
+            series_num = str(getattr(ds, "SeriesNumber", "0"))
+            series_desc = str(getattr(ds, "SeriesDescription", "unknown")).replace(" ", "_")
             instance = int(getattr(ds, "InstanceNumber", 0))
-            files.append((instance, path))
+            key = f"{series_num}_{series_desc}"
+            series[key].append((instance, path))
         except Exception:
             pass
 
-    files.sort(key=lambda x: x[0])
-    print(f"Loaded {len(files)} DICOM slices.")
+    print(f"Found {len(series)} series:\n")
+    for key, slices in sorted(series.items()):
+        print(f"  Series {key}: {len(slices)} slices")
 
-    if not files:
-        print("No valid DICOM files found.")
-        sys.exit(1)
+    print()
 
-    indices = np.linspace(0, len(files) - 1, NUM_SLICES, dtype=int)
-    selected = [files[i] for i in indices]
+    for key, slices in sorted(series.items()):
+        slices.sort(key=lambda x: x[0])
+        out_dir = os.path.join(OUTPUT_FOLDER, key)
+        os.makedirs(out_dir, exist_ok=True)
 
-    for i, (instance, path) in enumerate(selected):
-        ds = pydicom.dcmread(path)
-        img_array = normalize(ds.pixel_array)
-        img = Image.fromarray(img_array, mode="L")
-        out_path = os.path.join(OUTPUT_FOLDER, f"slice_{i+1:02d}_inst{instance}.png")
-        img.save(out_path)
-        print(f"  Saved: slice_{i+1:02d}_inst{instance}.png")
+        n = min(NUM_SLICES_PER_SERIES, len(slices))
+        indices = np.linspace(0, len(slices) - 1, n, dtype=int)
+        selected = [slices[i] for i in indices]
 
-    print(f"\nDone. {NUM_SLICES} slices saved to: {OUTPUT_FOLDER}")
-    print("\nNext step: run this in Command Prompt to find your WSL distro name:")
-    print("  wsl -l -q")
+        print(f"Saving {n} slices for series: {key}")
+        for i, (instance, path) in enumerate(selected):
+            ds = pydicom.dcmread(path)
+            img_array = normalize(ds.pixel_array)
+            img = Image.fromarray(img_array, mode="L")
+            out_path = os.path.join(out_dir, f"slice_{i+1:02d}_inst{instance}.png")
+            img.save(out_path)
+
+        print(f"  -> Saved to: {out_dir}")
+
+    print(f"\nDone. Images saved to: {OUTPUT_FOLDER}")
 
 
 if __name__ == "__main__":
