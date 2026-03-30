@@ -18,7 +18,10 @@ except ImportError:
 
 DICOM_FOLDER = r"C:\Users\jlram\OneDrive\Documents\Jose\IMAGES\DICOMS"
 OUTPUT_FOLDER = r"C:\Users\jlram\mri_images"
-NUM_SLICES_PER_SERIES = 30
+
+# Save ALL slices for these series (no sampling) - critical for LCL/ACL assessment
+FULL_EXPORT_SERIES = {"2_AX_T2_FS_RIGHT", "6_SAG_T2_FS_RT"}
+NUM_SLICES_PER_SERIES = 30  # used for all other series
 
 
 def normalize(pixel_array):
@@ -61,11 +64,14 @@ def main():
         out_dir = os.path.join(OUTPUT_FOLDER, key)
         os.makedirs(out_dir, exist_ok=True)
 
-        n = min(NUM_SLICES_PER_SERIES, len(slices))
-        indices = np.linspace(0, len(slices) - 1, n, dtype=int)
-        selected = [slices[i] for i in indices]
-
-        print(f"Saving {n} slices for series: {key}")
+        if key in FULL_EXPORT_SERIES:
+            selected = slices
+            print(f"Saving ALL {len(slices)} slices for series: {key}")
+        else:
+            n = min(NUM_SLICES_PER_SERIES, len(slices))
+            indices = np.linspace(0, len(slices) - 1, n, dtype=int)
+            selected = [slices[i] for i in indices]
+            print(f"Saving {n} slices for series: {key}")
         for i, (instance, path) in enumerate(selected):
             ds = pydicom.dcmread(path)
             img_array = normalize(ds.pixel_array)
