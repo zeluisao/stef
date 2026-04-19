@@ -96,6 +96,7 @@ STORY = {
             {"text": "Talk to your teammate Oliver to plan tactics", "next": "tactics"},
             {"text": "Watch the rival team warm up to learn their style", "next": "scout"},
             {"text": "Visit Genzo in goal to build team spirit", "next": "genzo_talk"},
+            {"text": "⭐ DREAM TEAM — Join the Japan Youth World Cup squad!", "next": "dream_start"},
         ],
     },
 
@@ -318,6 +319,184 @@ STORY = {
             "Genzo walks over and shakes your hand: 'Rivals and friends.'"
         ),
         "emoji": "🌅",
+        "ending": "win",
+        "choices": [],
+    },
+
+    # ============================================================ DREAM TEAM ARC
+    # A separate adventure — Tsubasa joins Japan's youth World Cup squad!
+
+    "dream_start": {
+        "text": (
+            "A letter arrives from the Japan Football Federation. "
+            "'Tsubasa Ozora — you are selected for the Japan Youth World Cup Squad!' "
+            "You will face the best teams on the planet. "
+            "Coach Kira calls the squad together for the first time. "
+            "Who do you talk to first?"
+        ),
+        "emoji": "🇯🇵",
+        "choices": [
+            {"text": "Greet Hyuga Kojiro — your old rival, now your teammate", "next": "dream_hyuga"},
+            {"text": "Find Misaki Taro — your best friend and creative midfielder", "next": "dream_misaki"},
+            {"text": "Watch Schneider train alone — the German star is unstoppable", "next": "dream_schneider_watch"},
+        ],
+    },
+
+    "dream_hyuga": {
+        "text": (
+            "Hyuga crosses his arms and looks away. "
+            "'Don't think I'm your friend just because we're on the same team, Ozora.' "
+            "You smile — you know this is just how he talks. "
+            "'Then let's prove we're the best pair in the world,' you reply. "
+            "Hyuga almost smiles. Your first group match is against France!"
+        ),
+        "emoji": "🐯",
+        "choices": [
+            {"text": "Combine with Hyuga for the Skylab Hurricane twin shot", "next": "dream_skylab"},
+            {"text": "Play your own game and trust Hyuga to do the same", "next": "dream_individual"},
+        ],
+    },
+
+    "dream_misaki": {
+        "text": (
+            "Misaki grins and passes you the ball perfectly — even indoors! "
+            "'I've been studying France's defence,' he says, showing you notes. "
+            "Their left back is slow on the turn. "
+            "You and Misaki plan a move: you make a deep run, he plays it first-time. "
+            "In the match, the moment arrives — Misaki gives you the signal!"
+        ),
+        "emoji": "🎯",
+        "choices": [
+            {"text": "Make the run — trust the plan!", "next": "dream_misaki_goal"},
+            {"text": "Change the plan last second — shoot from outside the box", "next": "dream_long_shot"},
+        ],
+    },
+
+    "dream_schneider_watch": {
+        "text": (
+            "Karl Heinz Schneider of West Germany is practising alone. "
+            "His speed is terrifying — he runs 100m in under 11 seconds with a ball! "
+            "Schneider notices you watching. 'Japan is not ready for me,' he says coldly. "
+            "Your blood boils. Japan's first group match is tomorrow. "
+            "How do you prepare to face him?"
+        ),
+        "emoji": "⚡",
+        "choices": [
+            {"text": "Train extra sprints all night to match his pace", "next": "dream_tired"},
+            {"text": "Study video of him — find a weakness in his movement", "next": "dream_video"},
+            {"text": "Focus on your own strengths, not his", "next": "dream_self_belief"},
+        ],
+    },
+
+    "dream_skylab": {
+        "text": (
+            "Hyuga and you rehearse the Skylab Hurricane in training — "
+            "both of you leap, scissor-kick, and connect at the same time. "
+            "In the match against France, you win a corner. "
+            "The ball swings in... you and Hyuga both jump..."
+        ),
+        "emoji": "🌪️",
+        "choices": [
+            {"text": "Execute the Skylab Hurricane perfectly!", "next": "dream_skylab_goal"},
+            {"text": "Pull out — the timing feels wrong", "next": "dream_skylab_miss"},
+        ],
+    },
+
+    "dream_individual": {
+        "text": (
+            "You and Hyuga both play brilliantly on your own sides of the attack. "
+            "France struggle to mark two unstoppable forwards at once! "
+            "Hyuga scores with the Tiger Shot. You score with the Drive Shot. "
+            "Japan wins 2-0. After the match Hyuga says quietly: 'Not bad, Ozora.'"
+        ),
+        "emoji": "🤜",
+        "ending": "win",
+        "choices": [],
+    },
+
+    "dream_skylab_goal": {
+        "text": (
+            "PERFECTION! You and Hyuga connect like a thunderbolt — "
+            "the ball rockets into the top corner so fast the goalkeeper doesn't move! "
+            "The stadium falls silent... then erupts! "
+            "Japan wins 1-0. The commentators call it the greatest goal ever scored."
+        ),
+        "emoji": "🌠",
+        "ending": "win",
+        "choices": [],
+    },
+
+    "dream_skylab_miss": {
+        "text": (
+            "You pull out — but Hyuga didn't! He connects alone and the ball flies wide. "
+            "Hyuga glares at you. The match ends 0-0. "
+            "In the dressing room, Hyuga says: 'If you're not sure, say so before the game.' "
+            "It's a tough lesson — communication matters as much as skill."
+        ),
+        "emoji": "😓",
+        "ending": "lose",
+        "choices": [],
+    },
+
+    "dream_misaki_goal": {
+        "text": (
+            "You sprint behind the French defence at full speed. "
+            "Misaki's pass is inch-perfect — it drops right into your stride! "
+            "You hammer it first time into the net. GOOOAL! "
+            "The plan worked exactly as designed. Japan wins 1-0. "
+            "Misaki runs to you: 'Perfect execution, Tsubasa!'"
+        ),
+        "emoji": "🎉",
+        "ending": "win",
+        "choices": [],
+    },
+
+    "dream_long_shot": {
+        "text": (
+            "You ignore the plan and shoot from 35 metres — right at the goalkeeper. "
+            "He saves it easily. Misaki says nothing, but you see the disappointment. "
+            "France counter-attack and score. Japan loses 1-0. "
+            "Coach Kira is calm: 'Trust your teammates. A team is stronger than one.'"
+        ),
+        "emoji": "😞",
+        "ending": "lose",
+        "choices": [],
+    },
+
+    "dream_tired": {
+        "text": (
+            "You train all night. By morning your legs feel like lead. "
+            "In the match, Schneider runs straight past you twice. "
+            "Japan loses 2-0. In the dressing room you realise: "
+            "rest is part of training. A tired body cannot do what a rested one can."
+        ),
+        "emoji": "😴",
+        "ending": "lose",
+        "choices": [],
+    },
+
+    "dream_video": {
+        "text": (
+            "You spot it: Schneider always cuts inside on his left foot. "
+            "You tell Genzo to position wide right. "
+            "In the match, Schneider cuts inside — Genzo reads it perfectly and saves! "
+            "On the counter-attack you score the Drive Shot. Japan wins 1-0! "
+            "Schneider stares at you: 'How did you know?' You smile."
+        ),
+        "emoji": "🎬",
+        "ending": "win",
+        "choices": [],
+    },
+
+    "dream_self_belief": {
+        "text": (
+            "You sleep well and eat a good breakfast. "
+            "In the match you play your natural game — fast, joyful, fearless. "
+            "Schneider tries to intimidate you, but you laugh it off. "
+            "In the 80th minute you dribble past him and score. "
+            "Japan wins 1-0. Afterwards Schneider says: 'You play with your heart.'"
+        ),
+        "emoji": "💛",
         "ending": "win",
         "choices": [],
     },
