@@ -3,7 +3,7 @@
 # Then open http://localhost:5000 in your browser!
 
 from flask import Flask, render_template, request, session
-from story import STORY
+from story import STORY, GUIDE_STEPS
 
 app = Flask(__name__)
 app.secret_key = "tsubasa-soccer-123"  # needed to remember the player's progress
@@ -22,6 +22,11 @@ def choice():
     if node is None:
         return render_template("index.html", node=STORY["start"], node_id="start")
     return render_template("index.html", node=node, node_id=next_id)
+
+
+@app.route("/guide")
+def guide():
+    return render_template("guide.html", steps=GUIDE_STEPS, story=STORY)
 
 
 if __name__ == "__main__":

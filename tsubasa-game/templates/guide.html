@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚽ How to Add Your Own Story</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="game-container guide-container">
+
+    <header>
+      <h1>⚽ Captain Tsubasa</h1>
+      <p class="subtitle">How to Add Your Own Story</p>
+    </header>
+
+    <div class="guide-intro story-card">
+      <div class="emoji-display">🧑‍💻</div>
+      <p class="story-text">
+        The whole story lives in one file: <code>story.py</code>.<br>
+        Follow the steps below and you can add any character, any scene, any adventure!
+      </p>
+      <a href="/" class="btn btn-restart" style="max-width:200px;margin:0 auto;display:block;">▶ Back to Game</a>
+    </div>
+
+    {% for step in steps %}
+    <div class="story-card guide-step">
+      <div class="step-header">
+        <span class="step-emoji">{{ step.emoji }}</span>
+        <h2 class="step-title">{{ step.title }}</h2>
+      </div>
+      <p class="story-text">{{ step.text }}</p>
+      {% if step.code %}
+      <pre class="code-block">{{ step.code }}</pre>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="story-card guide-challenge">
+      <div class="emoji-display">🌟</div>
+      <h2 class="step-title">Your Challenge!</h2>
+      <p class="story-text">
+        Add a new character to the story. Here are some ideas:
+      </p>
+      <ul class="challenge-list">
+        <li>⚡ <strong>Hyuga Kojiro</strong> — the Tiger Shot rival who becomes a teammate</li>
+        <li>🦅 <strong>Gilmar</strong> — the Brazilian goalkeeper with lightning reflexes</li>
+        <li>🌍 <strong>Karl Heinz Schneider</strong> — the unstoppable German midfielder</li>
+        <li>💪 <strong>Your own character!</strong> — make someone up!</li>
+      </ul>
+      <p class="story-text" style="margin-top:16px;">
+        Look at how existing nodes work in <code>story.py</code>, copy the pattern, and write your own scene!
+      </p>
+      <a href="/" class="btn btn-restart" style="max-width:200px;margin:16px auto 0;display:block;">▶ Play the Game</a>
+    </div>
+
+    <div class="story-card guide-map">
+      <div class="emoji-display">🗺️</div>
+      <h2 class="step-title">Story Map — All current nodes</h2>
+      <p class="story-text">Here is every node in the game right now. See how they connect!</p>
+      <table class="node-table">
+        <thead>
+          <tr><th>Node ID</th><th>Emoji</th><th>Leads to...</th></tr>
+        </thead>
+        <tbody>
+          {% for node_id, node in story.items() %}
+          <tr>
+            <td><code>{{ node_id }}</code></td>
+            <td>{{ node.emoji }}</td>
+            <td>
+              {% if node.get('ending') %}
+                <span class="badge badge-{{ node.ending }}">{{ node.ending }}</span>
+              {% else %}
+                {% for c in node.choices %}
+                  <code>{{ c.next }}</code>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <footer>
+      <p>Made with Python 🐍 + HTML — You can do this too!</p>
+    </footer>
+
+  </div>
+</body>
+</html>
