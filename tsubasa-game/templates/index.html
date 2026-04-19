@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚽ Captain Tsubasa Story Game</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="game-container">
+
+    <header>
+      <h1>⚽ Captain Tsubasa</h1>
+      <p class="subtitle">Your Soccer Story Adventure</p>
+    </header>
+
+    <main>
+      <div class="story-card {% if node.get('ending') == 'win' %}card-win{% elif node.get('ending') == 'lose' %}card-lose{% endif %}">
+
+        <div class="emoji-display">{{ node.emoji }}</div>
+
+        <p class="story-text">{{ node.text }}</p>
+
+        {% if node.get('ending') %}
+          <!-- Game Over screen -->
+          <div class="ending">
+            {% if node.ending == 'win' %}
+              <h2 class="win-title">🏆 VICTORY! 🏆</h2>
+              <p>You led Nankatsu to glory, Tsubasa!</p>
+            {% else %}
+              <h2 class="lose-title">😤 Keep Training!</h2>
+              <p>Every champion loses sometimes. Try again!</p>
+            {% endif %}
+            <a href="/" class="btn btn-restart">▶ Play Again</a>
+          </div>
+
+        {% else %}
+          <!-- Choice buttons -->
+          <div class="choices">
+            {% for choice in node.choices %}
+            <form method="POST" action="/choice">
+              <input type="hidden" name="next" value="{{ choice.next }}" />
+              <button type="submit" class="btn btn-choice">
+                {{ choice.text }}
+              </button>
+            </form>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+      </div>
+    </main>
+
+    <footer>
+      <p>Made with Python 🐍 + HTML — Learn to code by changing <code>story.py</code>!</p>
+    </footer>
+
+  </div>
+</body>
+</html>
