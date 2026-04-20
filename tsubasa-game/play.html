@@ -72,18 +72,26 @@ footer{text-align:center;color:#a5d6a7;font-size:.8rem;margin-top:18px}
 //  PLAYERS  — each player is an object with name, emoji, role
 // ═══════════════════════════════════════════════════════════
 const PLAYERS = [
-  {id:"tsubasa", name:"Tsubasa",  emoji:"⚽", role:"Forward",    move:"Drive Shot"},
-  {id:"hyuga",   name:"Hyuga",    emoji:"🐯", role:"Forward",    move:"Tiger Shot"},
-  {id:"oliver",  name:"Oliver",   emoji:"🌟", role:"Forward",    move:"Twin Shot"},
-  {id:"santana", name:"Santana",  emoji:"💪", role:"Forward",    move:"South American Dribble"},
-  {id:"misaki",  name:"Misaki",   emoji:"🎯", role:"Midfielder", move:"Perfect Pass"},
-  {id:"schneider",name:"Schneider",emoji:"⚡",role:"Midfielder", move:"Sprint Blast"},
-  {id:"urabe",   name:"Urabe",    emoji:"🎸", role:"Midfielder", move:"Skill Trick"},
-  {id:"matsuyama",name:"Matsuyama",emoji:"🏔️",role:"Defender",  move:"Mountain Block"},
-  {id:"soda",    name:"Soda",     emoji:"🌊", role:"Defender",   move:"Wave Tackle"},
-  {id:"morisaki",name:"Morisaki", emoji:"🌙", role:"Defender",   move:"Shadow Guard"},
-  {id:"benji",   name:"Benji",    emoji:"🧤", role:"Goalkeeper", move:"Eagle Jump"},
-  {id:"genzo",   name:"Genzo",    emoji:"🥅", role:"Goalkeeper", move:"Iron Fist"},
+  {id:"tsubasa",   name:"Tsubasa",   emoji:"⚽", role:"Forward",    move:"Drive Shot"},
+  {id:"hyuga",     name:"Hyuga",     emoji:"🐯", role:"Forward",    move:"Tiger Shot"},
+  {id:"oliver",    name:"Oliver",    emoji:"🌟", role:"Forward",    move:"Twin Shot"},
+  {id:"santana",   name:"Santana",   emoji:"💪", role:"Forward",    move:"South American Dribble"},
+  {id:"sawada",    name:"Sawada",    emoji:"🌿", role:"Forward",    move:"Sliding Dash"},
+  {id:"natureza",  name:"Natureza",  emoji:"🌺", role:"Forward",    move:"Samba Dribble"},
+  {id:"misaki",    name:"Misaki",    emoji:"🎯", role:"Midfielder", move:"Perfect Pass"},
+  {id:"schneider", name:"Schneider", emoji:"⚡", role:"Midfielder", move:"Sprint Blast"},
+  {id:"urabe",     name:"Urabe",     emoji:"🎸", role:"Midfielder", move:"Skill Trick"},
+  {id:"ishizaki",  name:"Ishizaki",  emoji:"🔥", role:"Midfielder", move:"Blazing Run"},
+  {id:"pierre",    name:"Pierre",    emoji:"🥐", role:"Midfielder", move:"French Flair"},
+  {id:"masao",     name:"Masao",     emoji:"👬", role:"Midfielder", move:"Twin Tackle"},
+  {id:"matsuyama", name:"Matsuyama", emoji:"🏔️", role:"Defender",   move:"Mountain Block"},
+  {id:"soda",      name:"Soda",      emoji:"🌊", role:"Defender",   move:"Wave Tackle"},
+  {id:"morisaki",  name:"Morisaki",  emoji:"🌙", role:"Defender",   move:"Shadow Guard"},
+  {id:"kaltz",     name:"Kaltz",     emoji:"🏰", role:"Defender",   move:"Wall Defence"},
+  {id:"napoleon",  name:"Napoleon",  emoji:"👑", role:"Defender",   move:"Royal Guard"},
+  {id:"benji",     name:"Benji",     emoji:"🧤", role:"Goalkeeper", move:"Eagle Jump"},
+  {id:"genzo",     name:"Genzo",     emoji:"🥅", role:"Goalkeeper", move:"Iron Fist"},
+  {id:"wakashimazu",name:"Wakashimazu",emoji:"🦅",role:"Goalkeeper",move:"Hawk Dive"},
 ];
 
 // ═══════════════════════════════════════════════════════════
@@ -123,8 +131,8 @@ const STORY = {
 // ═══════════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════════
-let myTeam  = [];   // starters — up to 5 players
-let myBench = null; // 1 bench player
+let myTeam  = [];   // starters — up to 11 players
+let myBench = [];   // bench — up to 8 players
 
 // ═══════════════════════════════════════════════════════════
 //  STORY RENDERER
@@ -200,7 +208,7 @@ function renderCreateTeam() {
       : `<span class="slot-hint">Tap a player to add them!</span>`;
     const cards = PLAYERS.map(p => {
       const picked  = myTeam.find(x=>x.id===p.id);
-      const isBench = myBench && myBench.id === p.id;
+      const isBench = myBench.find(x=>x.id===p.id);
       const dis = isBench ? ' style="opacity:.4;pointer-events:none"' : '';
       return `<div class="player-card${picked?" selected":""}"${dis} onclick="toggleTeam('${p.id}')">
         <div class="pc-emoji">${p.emoji}</div>
@@ -210,7 +218,7 @@ function renderCreateTeam() {
     }).join("");
     return `
       <div class="card card-dream">
-        <div class="dt-section-title">👕 Create Your Dream Team (pick up to 5)</div>
+        <div class="dt-section-title">👕 Create Your Dream Team (pick up to 11)</div>
         <div class="team-slots">${slots}</div>
         <div class="player-grid">${cards}</div>
         ${myTeam.length > 0 ? codeLessonTeam() : ""}
@@ -226,7 +234,7 @@ function toggleTeam(id) {
   const p = PLAYERS.find(x=>x.id===id);
   const i = myTeam.findIndex(x=>x.id===id);
   if (i >= 0) { myTeam.splice(i,1); }
-  else if (myTeam.length < 5) { myTeam.push(p); }
+  else if (myTeam.length < 11) { myTeam.push(p); }
   renderCreateTeam();
 }
 function removeFromTeam(id) { myTeam = myTeam.filter(x=>x.id!==id); renderCreateTeam(); }
@@ -237,29 +245,36 @@ function removeFromTeam(id) { myTeam = myTeam.filter(x=>x.id!==id); renderCreate
 function renderBenchPicker() {
   const cards = PLAYERS.map(p => {
     const isStarter = myTeam.find(x=>x.id===p.id);
-    const selected  = myBench && myBench.id === p.id;
+    const selected  = myBench.find(x=>x.id===p.id);
     const dis = isStarter ? ' style="opacity:.4;pointer-events:none"' : '';
-    return `<div class="player-card${selected?" selected":""}"${dis} onclick="pickBench('${p.id}')">
+    return `<div class="player-card${selected?" selected":""}"${dis} onclick="toggleBench('${p.id}')">
       <div class="pc-emoji">${p.emoji}</div>
       <div class="pc-name">${p.name}</div>
       <div class="pc-role">${p.role}</div>
     </div>`;
   }).join("");
+  const benchSlots = myBench.length
+    ? myBench.map(p=>`<span class="team-slot">${p.emoji} ${p.name} <span class="remove" onclick="removeBench('${p.id}')">✕</span></span>`).join("")
+    : `<span class="slot-hint">Tap a player to add them to the bench!</span>`;
   set(`
     <div class="card card-dream">
-      <div class="dt-section-title">🪑 Choose Your Bench Player (pick 1)</div>
-      ${myBench ? `<p style="text-align:center;margin-bottom:14px;font-size:1rem">
-        Bench: <strong>${myBench.emoji} ${myBench.name}</strong>
-        <span style="cursor:pointer;color:#6a1b9a;margin-left:8px" onclick="myBench=null;renderBenchPicker()">✕ Remove</span>
-      </p>` : `<p style="text-align:center;color:#888;margin-bottom:14px;font-size:.9rem">Tap a player to put them on the bench</p>`}
+      <div class="dt-section-title">🪑 Choose Your Bench Players (pick up to 8)</div>
+      <div class="team-slots">${benchSlots}</div>
       <div class="player-grid">${cards}</div>
-      ${myBench ? codeLessonBench() : ""}
+      ${myBench.length > 0 ? codeLessonBench() : ""}
       <div class="choices" style="margin-top:8px">
         <button class="btn btn-purple" onclick="renderDreamTeamMenu()">← Back</button>
       </div>
     </div>`);
 }
-function pickBench(id) { myBench = PLAYERS.find(x=>x.id===id); renderBenchPicker(); }
+function toggleBench(id) {
+  const p = PLAYERS.find(x=>x.id===id);
+  const i = myBench.findIndex(x=>x.id===id);
+  if (i >= 0) { myBench.splice(i,1); }
+  else if (myBench.length < 8) { myBench.push(p); }
+  renderBenchPicker();
+}
+function removeBench(id) { myBench = myBench.filter(x=>x.id!==id); renderBenchPicker(); }
 
 // ═══════════════════════════════════════════════════════════
 //  CODE LESSONS  — Grade 1 friendly
@@ -277,26 +292,24 @@ function codeLessonTeam() {
         Those square brackets make a <strong>LIST</strong>!<br>
         In coding a list is called an <strong>array</strong>.<br>
         Your team list has <strong>${myTeam.length} player${myTeam.length!==1?"s":""}!</strong><br>
-        Every time you picked a player, you added one item to the list. 🎉
+        A full team needs <strong>11 players</strong> — just like real soccer! 🎉
       </div>
     </div>`;
 }
 
 function codeLessonBench() {
+  const items = myBench.map(p =>
+    `  {<span class="hl-key">name</span>: <span class="hl-str">"${p.name}"</span>, <span class="hl-key">role</span>: <span class="hl-str">"${p.role}"</span>, <span class="hl-key">move</span>: <span class="hl-str">"${p.move}"</span>}`
+  ).join(",<br>");
   return `
     <div class="code-lesson">
       <h3>🧑‍💻 Your bench in code!</h3>
-      <div class="code-line"><span class="hl-key">myBenchPlayer</span> = {<br>
-  <span class="hl-key">  name</span>: <span class="hl-str">"${myBench.name}"</span>,<br>
-  <span class="hl-key">  emoji</span>: <span class="hl-str">"${myBench.emoji}"</span>,<br>
-  <span class="hl-key">  role</span>: <span class="hl-str">"${myBench.role}"</span>,<br>
-  <span class="hl-key">  specialMove</span>: <span class="hl-str">"${myBench.move}"</span><br>
-}</div>
+      <div class="code-line"><span class="hl-key">myBench</span> = [<br>${items}<br>]</div>
       <div class="lesson-tip">
-        <strong>What is { } ?</strong><br>
-        Curly brackets make an <strong>OBJECT</strong>!<br>
-        An object stores lots of facts about ONE thing.<br>
-        Your bench player object has 4 facts: name, emoji, role, and special move! ⚽
+        <strong>Two things to spot:</strong><br>
+        <strong>[ ]</strong> = a <strong>LIST</strong> (array) — holds all ${myBench.length} bench player${myBench.length!==1?"s":""}!<br>
+        <strong>{ }</strong> = an <strong>OBJECT</strong> — holds the facts about each player.<br>
+        So this is a list of objects — coders use this all the time! 🎉
       </div>
     </div>`;
 }
