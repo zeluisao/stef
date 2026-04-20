@@ -55,6 +55,15 @@ footer{text-align:center;color:#a5d6a7;font-size:.8rem;margin-top:18px}
 .player-card .pc-emoji{font-size:2.2rem}
 .player-card .pc-name{font-weight:700;font-size:.9rem;margin-top:4px;color:#333}
 .player-card .pc-role{font-size:.75rem;color:#777}
+.pc-stats{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:5px}
+.stat{font-size:.6rem;font-weight:700;color:#555}
+.stat span{color:#1565c0}
+.stat-bar{height:3px;background:#e0e0e0;border-radius:2px;margin-top:1px}
+.stat-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#1565c0,#42a5f5)}
+.power-badge{background:linear-gradient(135deg,#f57f17,#fbc02d);color:#1a1a1a;border-radius:10px;padding:8px 16px;text-align:center;font-weight:700;font-size:1rem;margin-bottom:14px}
+.score-bar{background:rgba(0,0,0,.75);border-radius:12px;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;color:white;font-weight:700;font-size:1.1rem}
+.score-bar .team{font-size:.8rem;opacity:.8}
+.score-num{font-size:2rem;color:#fbc02d}
 .team-slots{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;min-height:48px;padding:10px;background:#f3e5f5;border-radius:12px;border:2px dashed #ba68c8}
 .team-slot{background:#6a1b9a;color:white;border-radius:8px;padding:5px 10px;font-size:.85rem;font-weight:700;display:flex;align-items:center;gap:5px}
 .team-slot .remove{cursor:pointer;opacity:.7;font-size:.8rem}
@@ -87,29 +96,30 @@ footer{text-align:center;color:#a5d6a7;font-size:.8rem;margin-top:18px}
 // ═══════════════════════════════════════════════════════════
 //  PLAYERS  — each player is an object with name, emoji, role
 // ═══════════════════════════════════════════════════════════
+// spd=speed  sht=shoot  drb=dribble  pas=pass  (all out of 99)
 const PLAYERS = [
-  {id:"tsubasa",   name:"Tsubasa",   emoji:"⚽", role:"Forward",    move:"Drive Shot"},
-  {id:"hyuga",     name:"Hyuga",     emoji:"🐯", role:"Forward",    move:"Tiger Shot"},
-  {id:"oliver",    name:"Oliver",    emoji:"🌟", role:"Forward",    move:"Twin Shot"},
-  {id:"santana",   name:"Santana",   emoji:"💪", role:"Forward",    move:"South American Dribble"},
-  {id:"sawada",    name:"Sawada",    emoji:"🌿", role:"Forward",    move:"Sliding Dash"},
-  {id:"natureza",  name:"Natureza",  emoji:"🌺", role:"Forward",    move:"Samba Dribble"},
-  {id:"misaki",    name:"Misaki",    emoji:"🎯", role:"Midfielder", move:"Perfect Pass"},
-  {id:"schneider", name:"Schneider", emoji:"⚡", role:"Midfielder", move:"Sprint Blast"},
-  {id:"urabe",     name:"Urabe",     emoji:"🎸", role:"Midfielder", move:"Skill Trick"},
-  {id:"ishizaki",  name:"Ishizaki",  emoji:"🔥", role:"Midfielder", move:"Blazing Run"},
-  {id:"pierre",    name:"Pierre",    emoji:"🥐", role:"Midfielder", move:"French Flair"},
-  {id:"masao",     name:"Masao",     emoji:"👬", role:"Midfielder", move:"Twin Tackle"},
-  {id:"kazuo",     name:"Kazuo",     emoji:"👫", role:"Midfielder", move:"Twin Charge"},
-  {id:"misugi",    name:"Misugi",    emoji:"💫", role:"Midfielder", move:"Overhead Kick"},
-  {id:"matsuyama", name:"Matsuyama", emoji:"🏔️", role:"Defender",   move:"Mountain Block"},
-  {id:"soda",      name:"Soda",      emoji:"🌊", role:"Defender",   move:"Wave Tackle"},
-  {id:"morisaki",  name:"Morisaki",  emoji:"🌙", role:"Defender",   move:"Shadow Guard"},
-  {id:"kaltz",     name:"Kaltz",     emoji:"🏰", role:"Defender",   move:"Wall Defence"},
-  {id:"napoleon",  name:"Napoleon",  emoji:"👑", role:"Defender",   move:"Royal Guard"},
-  {id:"benji",     name:"Benji",     emoji:"🧤", role:"Goalkeeper", move:"Eagle Jump"},
-  {id:"genzo",     name:"Genzo",     emoji:"🥅", role:"Goalkeeper", move:"Iron Fist"},
-  {id:"wakashimazu",name:"Wakashimazu",emoji:"🦅",role:"Goalkeeper",move:"Hawk Dive"},
+  {id:"tsubasa",    name:"Tsubasa",    emoji:"⚽", role:"Forward",    move:"Drive Shot",            spd:92,sht:95,drb:90,pas:88},
+  {id:"hyuga",      name:"Hyuga",      emoji:"🐯", role:"Forward",    move:"Tiger Shot",            spd:88,sht:98,drb:75,pas:65},
+  {id:"oliver",     name:"Oliver",     emoji:"🌟", role:"Forward",    move:"Twin Shot",             spd:85,sht:88,drb:82,pas:80},
+  {id:"santana",    name:"Santana",    emoji:"💪", role:"Forward",    move:"South American Dribble",spd:87,sht:85,drb:96,pas:72},
+  {id:"sawada",     name:"Sawada",     emoji:"🌿", role:"Forward",    move:"Sliding Dash",          spd:80,sht:78,drb:75,pas:70},
+  {id:"natureza",   name:"Natureza",   emoji:"🌺", role:"Forward",    move:"Samba Dribble",         spd:90,sht:82,drb:94,pas:76},
+  {id:"misaki",     name:"Misaki",     emoji:"🎯", role:"Midfielder", move:"Perfect Pass",          spd:83,sht:72,drb:80,pas:97},
+  {id:"schneider",  name:"Schneider",  emoji:"⚡", role:"Midfielder", move:"Sprint Blast",          spd:99,sht:88,drb:84,pas:78},
+  {id:"urabe",      name:"Urabe",      emoji:"🎸", role:"Midfielder", move:"Skill Trick",           spd:76,sht:70,drb:88,pas:82},
+  {id:"ishizaki",   name:"Ishizaki",   emoji:"🔥", role:"Midfielder", move:"Blazing Run",           spd:84,sht:74,drb:72,pas:76},
+  {id:"pierre",     name:"Pierre",     emoji:"🥐", role:"Midfielder", move:"French Flair",          spd:78,sht:76,drb:86,pas:84},
+  {id:"masao",      name:"Masao",      emoji:"👬", role:"Midfielder", move:"Twin Tackle",           spd:75,sht:68,drb:74,pas:79},
+  {id:"kazuo",      name:"Kazuo",      emoji:"👫", role:"Midfielder", move:"Twin Charge",           spd:74,sht:67,drb:73,pas:78},
+  {id:"misugi",     name:"Misugi",     emoji:"💫", role:"Midfielder", move:"Overhead Kick",         spd:70,sht:84,drb:85,pas:90},
+  {id:"matsuyama",  name:"Matsuyama",  emoji:"🏔️", role:"Defender",   move:"Mountain Block",        spd:72,sht:60,drb:65,pas:70},
+  {id:"soda",       name:"Soda",       emoji:"🌊", role:"Defender",   move:"Wave Tackle",           spd:76,sht:58,drb:62,pas:68},
+  {id:"morisaki",   name:"Morisaki",   emoji:"🌙", role:"Defender",   move:"Shadow Guard",          spd:74,sht:55,drb:60,pas:72},
+  {id:"kaltz",      name:"Kaltz",      emoji:"🏰", role:"Defender",   move:"Wall Defence",          spd:73,sht:62,drb:64,pas:74},
+  {id:"napoleon",   name:"Napoleon",   emoji:"👑", role:"Defender",   move:"Royal Guard",           spd:71,sht:60,drb:63,pas:73},
+  {id:"benji",      name:"Benji",      emoji:"🧤", role:"Goalkeeper", move:"Eagle Jump",            spd:80,sht:50,drb:55,pas:65},
+  {id:"genzo",      name:"Genzo",      emoji:"🥅", role:"Goalkeeper", move:"Iron Fist",             spd:75,sht:48,drb:52,pas:62},
+  {id:"wakashimazu",name:"Wakashimazu",emoji:"🦅", role:"Goalkeeper", move:"Hawk Dive",             spd:78,sht:49,drb:54,pas:63},
 ];
 
 // ═══════════════════════════════════════════════════════════
@@ -147,10 +157,29 @@ const STORY = {
 };
 
 // ═══════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════
+function statBar(val){return`<div class="stat-bar"><div class="stat-bar-fill" style="width:${val}%"></div></div>`;}
+function playerCardHTML(p, selected, disabled){
+  return`<div class="player-card${selected?" selected":""}${disabled?' style="opacity:.4;pointer-events:none"':''}" onclick="${disabled?"":"togglePlayer('"+p.id+"')"}">
+    <div class="pc-emoji">${p.emoji}</div>
+    <div class="pc-name">${p.name}</div>
+    <div class="pc-role">${p.role}</div>
+    <div class="pc-stats">
+      <div class="stat">SPD <span>${p.spd}</span>${statBar(p.spd)}</div>
+      <div class="stat">SHT <span>${p.sht}</span>${statBar(p.sht)}</div>
+      <div class="stat">DRB <span>${p.drb}</span>${statBar(p.drb)}</div>
+      <div class="stat">PAS <span>${p.pas}</span>${statBar(p.pas)}</div>
+    </div>
+  </div>`;}
+function teamPower(list){ return list.length ? Math.round(list.reduce((s,p)=>(s+p.spd+p.sht+p.drb+p.pas),0)/list.length) : 0; }
+
+// ═══════════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════════
 let myTeam  = [];   // starters — up to 11 players
 let myBench = [];   // bench — up to 8 players
+let score   = [0,0]; // [player, cpu]
 
 // ═══════════════════════════════════════════════════════════
 //  STORY RENDERER
@@ -160,16 +189,23 @@ function render(nodeId) {
   if (!node) { renderHome(); return; }
   const isWin  = node.ending === "win";
   const isLose = node.ending === "lose";
+  if (isWin)  score[0]++;
+  if (isLose) score[1]++;
   set(`
+    <div class="score-bar">
+      <div><div class="team">Nankatsu</div><div class="score-num">${score[0]}</div></div>
+      <div style="font-size:.85rem;opacity:.7">SCORE</div>
+      <div style="text-align:right"><div class="team">Rivals</div><div class="score-num">${score[1]}</div></div>
+    </div>
     <div class="card${isWin?" card-win":isLose?" card-lose":""}">
       <div class="emoji-big">${node.emoji}</div>
       <p class="story-text">${node.text}</p>
       ${node.ending ? `
         <div class="ending">
           ${isWin
-            ? `<h2 class="win-title">🏆 VICTORY! 🏆</h2><p>You led your team to glory!</p>`
+            ? `<h2 class="win-title">🏆 GOAL! YOU WIN! 🏆</h2><p>You led Nankatsu to glory!</p>`
             : `<h2 class="lose-title">😤 Keep Training!</h2><p>Every champion loses. Try again!</p>`}
-          <button class="btn btn-green" onclick="renderHome()">▶ Back to Menu</button>
+          <button class="btn btn-green" onclick="score=[0,0];renderHome()">▶ Back to Menu</button>
         </div>`
       : `<div class="choices">${node.choices.map(c=>
           `<button class="btn btn-blue" onclick="render('${c.next}')">${c.text}</button>`
@@ -236,57 +272,38 @@ function renderDreamTeamMenu() {
 //  CREATE DREAM TEAM — pick up to 5 starters
 // ═══════════════════════════════════════════════════════════
 function renderCreateTeam() {
-  function html() {
-    const slots = myTeam.length
-      ? myTeam.map(p=>`<span class="team-slot">${p.emoji} ${p.name} <span class="remove" onclick="removeFromTeam('${p.id}')">✕</span></span>`).join("")
-      : `<span class="slot-hint">Tap a player to add them!</span>`;
-    const cards = PLAYERS.map(p => {
-      const picked  = myTeam.find(x=>x.id===p.id);
-      const isBench = myBench.find(x=>x.id===p.id);
-      const dis = isBench ? ' style="opacity:.4;pointer-events:none"' : '';
-      return `<div class="player-card${picked?" selected":""}"${dis} onclick="toggleTeam('${p.id}')">
-        <div class="pc-emoji">${p.emoji}</div>
-        <div class="pc-name">${p.name}</div>
-        <div class="pc-role">${p.role}</div>
-      </div>`;
-    }).join("");
-    return `
-      <div class="card card-dream">
-        <div class="dt-section-title">👕 Create Your Dream Team (pick up to 11)</div>
-        <div class="team-slots">${slots}</div>
-        <div class="player-grid">${cards}</div>
-        ${myTeam.length > 0 ? codeLessonTeam() : ""}
-        <div class="choices" style="margin-top:8px">
-          <button class="btn btn-purple" onclick="renderDreamTeamMenu()">← Back</button>
-        </div>
-      </div>`;
-  }
-  set(html());
+  const slots = myTeam.length
+    ? myTeam.map(p=>`<span class="team-slot">${p.emoji} ${p.name} <span class="remove" onclick="myTeam=myTeam.filter(x=>x.id!='${p.id}');renderCreateTeam()">✕</span></span>`).join("")
+    : `<span class="slot-hint">Tap a player to add them!</span>`;
+  const cards = PLAYERS.map(p=>playerCardHTML(p,!!myTeam.find(x=>x.id===p.id),!!myBench.find(x=>x.id===p.id))).join("");
+  const pw = teamPower(myTeam);
+  set(`
+    <div class="card card-dream">
+      <div class="dt-section-title">👕 Create Your Dream Team (pick up to 11)</div>
+      ${pw>0?`<div class="power-badge">⚡ Team Power: ${pw}</div>`:""}
+      <div class="team-slots">${slots}</div>
+      <div class="player-grid">${cards}</div>
+      ${myTeam.length>0?codeLessonTeam():""}
+      <div class="choices" style="margin-top:8px">
+        ${myTeam.length>=2?`<button class="btn btn-gold" onclick="renderMatch()">⚽ Play Match with this Team!</button>`:""}
+        <button class="btn btn-purple" onclick="renderDreamTeamMenu()">← Back</button>
+      </div>
+    </div>`);
 }
 
-function toggleTeam(id) {
-  const p = PLAYERS.find(x=>x.id===id);
-  const i = myTeam.findIndex(x=>x.id===id);
-  if (i >= 0) { myTeam.splice(i,1); }
-  else if (myTeam.length < 11) { myTeam.push(p); }
-  renderCreateTeam();
+function togglePlayer(id) {
+  const inTeam  = myTeam.findIndex(x=>x.id===id);
+  const inBench = myBench.findIndex(x=>x.id===id);
+  if (inTeam  >= 0) { myTeam.splice(inTeam,1);   renderCreateTeam(); return; }
+  if (inBench >= 0) { myBench.splice(inBench,1);  renderBenchPicker(); return; }
+  if (myTeam.length < 11) { myTeam.push(PLAYERS.find(x=>x.id===id)); renderCreateTeam(); }
 }
-function removeFromTeam(id) { myTeam = myTeam.filter(x=>x.id!==id); renderCreateTeam(); }
 
 // ═══════════════════════════════════════════════════════════
 //  BENCH PICKER — pick 1 bench player
 // ═══════════════════════════════════════════════════════════
 function renderBenchPicker() {
-  const cards = PLAYERS.map(p => {
-    const isStarter = myTeam.find(x=>x.id===p.id);
-    const selected  = myBench.find(x=>x.id===p.id);
-    const dis = isStarter ? ' style="opacity:.4;pointer-events:none"' : '';
-    return `<div class="player-card${selected?" selected":""}"${dis} onclick="toggleBench('${p.id}')">
-      <div class="pc-emoji">${p.emoji}</div>
-      <div class="pc-name">${p.name}</div>
-      <div class="pc-role">${p.role}</div>
-    </div>`;
-  }).join("");
+  const cards = PLAYERS.map(p=>playerCardHTML(p,!!myBench.find(x=>x.id===p.id),!!myTeam.find(x=>x.id===p.id))).join("");
   const benchSlots = myBench.length
     ? myBench.map(p=>`<span class="team-slot">${p.emoji} ${p.name} <span class="remove" onclick="removeBench('${p.id}')">✕</span></span>`).join("")
     : `<span class="slot-hint">Tap a player to add them to the bench!</span>`;
@@ -308,7 +325,84 @@ function toggleBench(id) {
   else if (myBench.length < 8) { myBench.push(p); }
   renderBenchPicker();
 }
-function removeBench(id) { myBench = myBench.filter(x=>x.id!==id); renderBenchPicker(); }
+
+// ═══════════════════════════════════════════════════════════
+//  MATCH SIMULATION
+// ═══════════════════════════════════════════════════════════
+const RIVALS = [
+  {name:"Shutetsu",  power:72, emoji:"🔴"},
+  {name:"Toho",      power:80, emoji:"🟡"},
+  {name:"France",    power:85, emoji:"🇫🇷"},
+  {name:"W.Germany", power:90, emoji:"🇩🇪"},
+  {name:"Brazil",    power:95, emoji:"🇧🇷"},
+];
+
+function renderMatch() {
+  const rival = RIVALS[Math.floor(Math.random()*RIVALS.length)];
+  const myPow = teamPower(myTeam);
+  set(`
+    <div class="card card-dream">
+      <div class="dt-section-title">⚽ Match Time!</div>
+      <div style="display:flex;justify-content:space-around;align-items:center;margin:16px 0;font-size:1rem;font-weight:700">
+        <div style="text-align:center">
+          <div style="font-size:2.5rem">🇯🇵</div>
+          <div>Japan</div>
+          <div style="color:#6a1b9a">Power: ${myPow}</div>
+        </div>
+        <div style="font-size:1.5rem">VS</div>
+        <div style="text-align:center">
+          <div style="font-size:2.5rem">${rival.emoji}</div>
+          <div>${rival.name}</div>
+          <div style="color:#c62828">Power: ${rival.power}</div>
+        </div>
+      </div>
+      <p style="text-align:center;color:#555;margin-bottom:20px">Your team power is <strong>${myPow}</strong>. ${rival.name} has <strong>${rival.power}</strong>. Ready?</p>
+      <div class="choices">
+        <button class="btn btn-gold" onclick="simulateMatch(${rival.power},'${rival.name}')">🏃 Kick Off!</button>
+        <button class="btn btn-purple" onclick="renderDreamTeamMenu()">← Back</button>
+      </div>
+    </div>`);
+}
+
+function simulateMatch(rivalPow, rivalName) {
+  const myPow = teamPower(myTeam);
+  const advantage = myPow - rivalPow;
+  let myGoals=0, theirGoals=0, events=[];
+  for (let min=10; min<=90; min+=10) {
+    const rand = Math.random()*100 + advantage*0.4;
+    if (rand > 52) {
+      myGoals++;
+      const scorer = myTeam[Math.floor(Math.random()*myTeam.length)];
+      events.push(`⚽ ${min}' — ${scorer.emoji} <strong>${scorer.name}</strong> scores with the <em>${scorer.move}</em>! ${myGoals}-${theirGoals}`);
+    } else if (rand < 44) {
+      theirGoals++;
+      events.push(`😨 ${min}' — ${rivalName} scores! ${myGoals}-${theirGoals}`);
+    } else {
+      events.push(`🔄 ${min}' — Tough battle. No score.`);
+    }
+  }
+  const win = myGoals > theirGoals;
+  const draw = myGoals === theirGoals;
+  set(`
+    <div class="card${win?" card-win":draw?"":" card-lose"}">
+      <div class="emoji-big">${win?"🏆":draw?"🤝":"😤"}</div>
+      <h2 style="text-align:center;margin-bottom:8px;font-size:1.5rem">
+        ${win?"VICTORY!":draw?"DRAW!":"DEFEAT!"}
+      </h2>
+      <div class="score-bar" style="margin:12px 0">
+        <div><div class="team">Japan</div><div class="score-num">${myGoals}</div></div>
+        <div style="font-size:.8rem;opacity:.7">FINAL</div>
+        <div style="text-align:right"><div class="team">${rivalName}</div><div class="score-num">${theirGoals}</div></div>
+      </div>
+      <div style="background:#f5f5f5;border-radius:12px;padding:14px;margin-bottom:16px;font-size:.9rem;line-height:2">
+        ${events.join("<br>")}
+      </div>
+      <div class="choices">
+        <button class="btn btn-gold" onclick="renderMatch()">⚽ Play Again</button>
+        <button class="btn btn-green" onclick="renderHome()">← Menu</button>
+      </div>
+    </div>`);
+}
 
 // ═══════════════════════════════════════════════════════════
 //  CODE LESSONS  — Grade 1 friendly
