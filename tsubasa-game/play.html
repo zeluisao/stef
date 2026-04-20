@@ -7,194 +7,307 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1a6b2f 0%,#0d4a8a 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.game-container{width:100%;max-width:700px}
+.game-container{width:100%;max-width:740px}
 header{text-align:center;color:white;margin-bottom:24px}
-header h1{font-size:2.2rem;text-shadow:2px 2px 6px rgba(0,0,0,.5);letter-spacing:1px}
+header h1{font-size:2rem;text-shadow:2px 2px 6px rgba(0,0,0,.5)}
 .subtitle{font-size:1rem;color:#c8e6c9;margin-top:6px}
-.story-card{background:white;border-radius:20px;padding:36px 40px;box-shadow:0 12px 40px rgba(0,0,0,.35);border-top:8px solid #1565c0;animation:fadeIn .4s ease}
+.card{background:white;border-radius:20px;padding:32px 36px;box-shadow:0 12px 40px rgba(0,0,0,.35);border-top:8px solid #1565c0;animation:fadeIn .35s ease}
 .card-win{border-top-color:#f9a825}
 .card-lose{border-top-color:#c62828}
-@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.emoji-display{font-size:4rem;text-align:center;margin-bottom:20px}
-.story-text{font-size:1.15rem;line-height:1.8;color:#333;margin-bottom:32px}
-.choices{display:flex;flex-direction:column;gap:12px}
-.btn{display:block;width:100%;padding:14px 20px;font-size:1rem;font-weight:600;border:none;border-radius:12px;cursor:pointer;transition:transform .15s,box-shadow .15s;text-align:center;text-decoration:none;font-family:inherit}
+.card-dream{border-top-color:#7b1fa2}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.emoji-big{font-size:3.5rem;text-align:center;margin-bottom:16px}
+.story-text{font-size:1.1rem;line-height:1.8;color:#333;margin-bottom:28px}
+.choices{display:flex;flex-direction:column;gap:10px}
+.btn{display:block;width:100%;padding:13px 18px;font-size:1rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:transform .15s,box-shadow .15s;text-align:center;font-family:inherit}
 .btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.2)}
-.btn:active{transform:translateY(0)}
-.btn-choice{background:linear-gradient(135deg,#1565c0,#1e88e5);color:white}
-.btn-choice:hover{background:linear-gradient(135deg,#0d47a1,#1565c0)}
+.btn-blue{background:linear-gradient(135deg,#1565c0,#1e88e5);color:white}
+.btn-green{background:linear-gradient(135deg,#2e7d32,#43a047);color:white;max-width:260px;margin:0 auto;display:block}
+.btn-purple{background:linear-gradient(135deg,#6a1b9a,#8e24aa);color:white}
+.btn-gold{background:linear-gradient(135deg,#f57f17,#fbc02d);color:#1a1a1a}
 .ending{text-align:center}
-.win-title{font-size:2rem;color:#f9a825;margin-bottom:10px}
-.lose-title{font-size:2rem;color:#c62828;margin-bottom:10px}
-.ending p{color:#555;margin-bottom:24px;font-size:1.1rem}
-.btn-restart{background:linear-gradient(135deg,#2e7d32,#43a047);color:white;font-size:1.1rem;max-width:240px;margin:0 auto;display:block}
-footer{text-align:center;color:#a5d6a7;font-size:.85rem;margin-top:20px}
-footer code{background:rgba(255,255,255,.15);padding:2px 6px;border-radius:4px}
+.win-title{font-size:1.9rem;color:#f9a825;margin-bottom:8px}
+.lose-title{font-size:1.9rem;color:#c62828;margin-bottom:8px}
+.ending p{color:#555;margin-bottom:20px;font-size:1.05rem}
+footer{text-align:center;color:#a5d6a7;font-size:.8rem;margin-top:18px}
+
+/* ── Dream Team ── */
+.dt-section-title{font-size:1.3rem;font-weight:700;color:#6a1b9a;margin-bottom:16px;text-align:center}
+.player-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.player-card{border:3px solid #e0e0e0;border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s;background:#fafafa}
+.player-card:hover{border-color:#8e24aa;background:#f3e5f5;transform:translateY(-2px)}
+.player-card.selected{border-color:#6a1b9a;background:#ede7f6;box-shadow:0 4px 14px rgba(106,27,154,.3)}
+.player-card .pc-emoji{font-size:2.2rem}
+.player-card .pc-name{font-weight:700;font-size:.9rem;margin-top:4px;color:#333}
+.player-card .pc-role{font-size:.75rem;color:#777}
+.team-slots{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;min-height:48px;padding:10px;background:#f3e5f5;border-radius:12px;border:2px dashed #ba68c8}
+.team-slot{background:#6a1b9a;color:white;border-radius:8px;padding:5px 10px;font-size:.85rem;font-weight:700;display:flex;align-items:center;gap:5px}
+.team-slot .remove{cursor:pointer;opacity:.7;font-size:.8rem}
+.team-slot .remove:hover{opacity:1}
+.slot-hint{color:#9c5fb5;font-size:.85rem;align-self:center}
+
+/* ── Code Lesson ── */
+.code-lesson{background:#1e1e2e;border-radius:14px;padding:20px 22px;margin-bottom:20px;position:relative}
+.code-lesson h3{color:#cba6f7;font-size:1rem;margin-bottom:12px}
+.code-line{font-family:monospace;font-size:.95rem;line-height:1.9;color:#cdd6f4;white-space:pre-wrap}
+.code-line .hl-key{color:#89b4fa}
+.code-line .hl-val{color:#a6e3a1}
+.code-line .hl-str{color:#fab387}
+.lesson-tip{margin-top:14px;background:#313244;border-radius:10px;padding:12px 14px;color:#cdd6f4;font-size:.88rem;line-height:1.6}
+.lesson-tip strong{color:#f9e2af}
 </style>
 </head>
 <body>
 <div class="game-container">
   <header>
     <h1>⚽ Captain Tsubasa Soccer in the Galaxy</h1>
-    <p class="subtitle">Your Soccer Story Adventure</p>
+    <p class="subtitle">Play the story — build your team — learn to code!</p>
   </header>
   <main id="game"></main>
-  <footer><p>Just open this file in any browser — no internet needed! Edit the <code>STORY</code> object below to add your own chapters.</p></footer>
+  <footer><p>Open this file in any browser. No internet needed!</p></footer>
 </div>
-
 <script>
-// ─── STORY DATA ───────────────────────────────────────────────────────────────
-// To add your own node, copy any block below and give it a new unique name.
-// Make sure the "next" values in choices match another node name exactly!
+
+// ═══════════════════════════════════════════════════════════
+//  PLAYERS  — each player is an object with name, emoji, role
+// ═══════════════════════════════════════════════════════════
+const PLAYERS = [
+  {id:"tsubasa", name:"Tsubasa",  emoji:"⚽", role:"Forward",    move:"Drive Shot"},
+  {id:"hyuga",   name:"Hyuga",    emoji:"🐯", role:"Forward",    move:"Tiger Shot"},
+  {id:"oliver",  name:"Oliver",   emoji:"🌟", role:"Forward",    move:"Twin Shot"},
+  {id:"santana", name:"Santana",  emoji:"💪", role:"Forward",    move:"South American Dribble"},
+  {id:"misaki",  name:"Misaki",   emoji:"🎯", role:"Midfielder", move:"Perfect Pass"},
+  {id:"schneider",name:"Schneider",emoji:"⚡",role:"Midfielder", move:"Sprint Blast"},
+  {id:"urabe",   name:"Urabe",    emoji:"🎸", role:"Midfielder", move:"Skill Trick"},
+  {id:"matsuyama",name:"Matsuyama",emoji:"🏔️",role:"Defender",  move:"Mountain Block"},
+  {id:"soda",    name:"Soda",     emoji:"🌊", role:"Defender",   move:"Wave Tackle"},
+  {id:"morisaki",name:"Morisaki", emoji:"🌙", role:"Defender",   move:"Shadow Guard"},
+  {id:"benji",   name:"Benji",    emoji:"🧤", role:"Goalkeeper", move:"Eagle Jump"},
+  {id:"genzo",   name:"Genzo",    emoji:"🥅", role:"Goalkeeper", move:"Iron Fist"},
+];
+
+// ═══════════════════════════════════════════════════════════
+//  STORY DATA
+// ═══════════════════════════════════════════════════════════
 const STORY = {
   start:{
-    text:"You are Tsubasa Ozora, an 11-year-old soccer player from Nankatsu City. Today is the day of the big match against Shutetsu FC! Your team is counting on you. What do you do before the match?",
+    text:"You are Tsubasa Ozora, an 11-year-old soccer player from Nankatsu City. Today is the day of the big match against Shutetsu FC! Your team is counting on you. What do you do?",
     emoji:"⚽",
     choices:[
       {text:"Practice your Drive Shot on the field",next:"practice"},
       {text:"Talk to your teammate Oliver to plan tactics",next:"tactics"},
-      {text:"Watch the rival team warm up to learn their style",next:"scout"},
+      {text:"Watch the rival team warm up",next:"scout"},
       {text:"Visit Genzo in goal to build team spirit",next:"genzo_talk"},
-      {text:"⭐ DREAM TEAM — Join the Japan Youth World Cup squad!",next:"dream_start"},
     ]
   },
-  practice:{
-    text:"You spend an hour perfecting your famous Drive Shot. The ball screams through the air like a rocket! Coach Roberto watches and nods. 'Your shot is strong, Tsubasa.' The match begins — it's 0-0. You get a free kick 30 meters out!",
-    emoji:"🦵",
-    choices:[
-      {text:"Unleash the Drive Shot!",next:"drive_shot_win"},
-      {text:"Pass to Oliver for a Twin Shot",next:"twin_shot"},
-      {text:"Look up — Santana is rushing at you!",next:"santana_block"},
-    ]
-  },
-  drive_shot_win:{text:"You plant your foot, swing your leg with everything you have — BOOM! The ball tears through the air and smashes into the top corner! GOOOAL! The crowd goes wild! Nankatsu leads 1-0! The final whistle blows. YOU WIN!",emoji:"🏆",ending:"win"},
-  twin_shot:{text:"You and Oliver line up side by side. 'Together!' you shout. Both of you kick at the same instant — the goalkeeper doesn't know which way to dive! DOUBLE GOAL! The net explodes! Nankatsu wins 2-0!",emoji:"🌟",ending:"win"},
-  santana_block:{
-    text:"The fearsome Santana from South America charges towards you! He's the best player on Shutetsu. You have a split second to decide.",
-    emoji:"😰",
-    choices:[
-      {text:"Hold your ground and shoot through him",next:"santana_shoot"},
-      {text:"Dribble left and go around him",next:"santana_dribble"},
-      {text:"Dummy the shot and let Oliver in",next:"oliver_shoots"},
-    ]
-  },
-  santana_shoot:{text:"You shoot with all your power straight through Santana's challenge! The ball deflects off his shin... and loops into the net! An incredible lucky goal — but a goal is a goal! Nankatsu wins 1-0!",emoji:"🍀",ending:"win"},
-  santana_dribble:{text:"You feint left — Santana goes the wrong way! You burst into the box, one-on-one with the keeper. Coolly you slide the ball into the bottom corner. GOOOAL! The crowd roars! Nankatsu wins!",emoji:"💨",ending:"win"},
-  tactics:{
-    text:"Oliver sketches a plan on the ground with a stick. 'If we press high, their goalkeeper gets nervous.' You both agree on a signal: thumbs up means run into space. In the match, you spot Oliver give the thumbs up at the perfect moment!",
-    emoji:"🤝",
-    choices:[
-      {text:"Sprint into space and receive Oliver's pass",next:"through_ball"},
-      {text:"Fake the run and let Oliver shoot alone",next:"oliver_shoots"},
-      {text:"Signal back: ask Oliver to make the run instead",next:"switch_roles"},
-    ]
-  },
-  through_ball:{text:"You burst past two defenders at full speed. Oliver's pass is perfectly timed — it lands right at your feet! One-on-one with the goalkeeper... you chip the ball over him! GOOOAL! Nankatsu wins the match!",emoji:"🏅",ending:"win"},
-  oliver_shoots:{text:"You fake the run brilliantly — three defenders follow you! Oliver has a wide-open shot. He blasts it into the net! 'Great assist, Tsubasa!' Oliver shouts. Nankatsu wins thanks to your selfless play!",emoji:"🥇",ending:"win"},
-  switch_roles:{text:"Oliver nods and makes the run instead of you. He receives the ball in space, but a defender catches up. Oliver squares it back to you in the middle — completely free! You smash a volley into the roof of the net. GOOOAL!",emoji:"🔄",ending:"win"},
-  scout:{
-    text:"You notice Shutetsu's goalkeeper always dives left on shots. That's a secret weapon! You whisper this to Benji Price before the match. Benji grins: 'Good eyes, Tsubasa!' Late in the game, it's 1-1. You win a penalty kick!",
-    emoji:"🔍",
-    choices:[
-      {text:"Shoot right — the keeper's weak side!",next:"penalty_win"},
-      {text:"Blast it straight down the middle",next:"penalty_miss"},
-      {text:"Let Benji take the penalty instead",next:"benji_penalty"},
-    ]
-  },
-  penalty_win:{text:"You step up calmly. You remember what you saw during warm-ups. You shoot right — the keeper dives left! The ball rolls gently into the empty net. Nankatsu wins the championship 2-1! Heroes!",emoji:"🎉",ending:"win"},
-  penalty_miss:{text:"You blast it straight and hard — but the keeper guessed right! He catches the ball easily. 1-1 at full time. The match goes to extra time. Your legs are tired. Shutetsu scores in extra time. You lose 2-1. But Roberto smiles: 'A loss teaches more than a win. Train harder!'",emoji:"😤",ending:"lose"},
-  benji_penalty:{text:"You hand the ball to Benji. He looks surprised but determined. 'I trust you,' you say. Benji places the ball on the spot. He runs up slowly... and curls it into the top corner! Benji leaps into the air! Nankatsu wins 2-1! A true team victory!",emoji:"🤜🤛",ending:"win"},
-  genzo_talk:{
-    text:"You find Genzo Wakabayashi stretching in goal. He is Shutetsu's legendary goalkeeper — and today he's your rival! Wait... Genzo looks sad. 'I hurt my hand in training,' he admits quietly. What do you do with this information?",
-    emoji:"🧤",
-    choices:[
-      {text:"Keep it secret and use it to your advantage",next:"genzo_exploit"},
-      {text:"Tell your team to play fair — no targeting the injury",next:"genzo_fair"},
-      {text:"Encourage Genzo: 'A great keeper plays with heart, not hands'",next:"genzo_inspire"},
-    ]
-  },
-  genzo_exploit:{text:"You tell your team to shoot at Genzo's hurt hand every time. You score two easy goals... but the crowd boos. Even your own teammates look uncomfortable. Nankatsu wins 2-0, but no one celebrates. Coach Roberto says quietly: 'We won the match but lost our honour.'",emoji:"😔",ending:"lose"},
-  genzo_fair:{text:"You tell your team to play normally — no targeting the injury. Genzo plays brilliantly despite the pain, saving shot after shot. In the last minute you score a wonder goal from 40 metres. Genzo applauds from his goal. 'Well played, Tsubasa.' Nankatsu wins 1-0. A victory to be proud of!",emoji:"🤺",ending:"win"},
-  genzo_inspire:{text:"Genzo stares at you, then smiles. 'You're right.' Inspired by your words, Genzo plays the match of his life — but so do you! The game ends 1-1 after a thrilling battle. In the penalty shootout you score the winning kick. Genzo walks over and shakes your hand: 'Rivals and friends.'",emoji:"🌅",ending:"win"},
-  dream_start:{
-    text:"A letter arrives from the Japan Football Federation. 'Tsubasa Ozora — you are selected for the Japan Youth World Cup Squad!' You will face the best teams on the planet. Coach Kira calls the squad together for the first time. Who do you talk to first?",
-    emoji:"🇯🇵",
-    choices:[
-      {text:"Greet Hyuga Kojiro — your old rival, now your teammate",next:"dream_hyuga"},
-      {text:"Find Misaki Taro — your best friend and creative midfielder",next:"dream_misaki"},
-      {text:"Watch Schneider train alone — the German star is unstoppable",next:"dream_schneider_watch"},
-    ]
-  },
-  dream_hyuga:{
-    text:"Hyuga crosses his arms and looks away. 'Don't think I'm your friend just because we're on the same team, Ozora.' You smile — you know this is just how he talks. 'Then let's prove we're the best pair in the world,' you reply. Hyuga almost smiles. Your first group match is against France!",
-    emoji:"🐯",
-    choices:[
-      {text:"Combine with Hyuga for the Skylab Hurricane twin shot",next:"dream_skylab"},
-      {text:"Play your own game and trust Hyuga to do the same",next:"dream_individual"},
-    ]
-  },
-  dream_misaki:{
-    text:"Misaki grins and passes you the ball perfectly — even indoors! 'I've been studying France's defence,' he says, showing you notes. Their left back is slow on the turn. You and Misaki plan a move: you make a deep run, he plays it first-time. In the match, the moment arrives — Misaki gives you the signal!",
-    emoji:"🎯",
-    choices:[
-      {text:"Make the run — trust the plan!",next:"dream_misaki_goal"},
-      {text:"Change the plan last second — shoot from outside the box",next:"dream_long_shot"},
-    ]
-  },
-  dream_schneider_watch:{
-    text:"Karl Heinz Schneider of West Germany is practising alone. His speed is terrifying — he runs 100m in under 11 seconds with a ball! Schneider notices you watching. 'Japan is not ready for me,' he says coldly. Your blood boils. Japan's first group match is tomorrow. How do you prepare?",
-    emoji:"⚡",
-    choices:[
-      {text:"Train extra sprints all night to match his pace",next:"dream_tired"},
-      {text:"Study video of him — find a weakness in his movement",next:"dream_video"},
-      {text:"Focus on your own strengths, not his",next:"dream_self_belief"},
-    ]
-  },
-  dream_skylab:{
-    text:"Hyuga and you rehearse the Skylab Hurricane in training — both of you leap, scissor-kick, and connect at the same time. In the match against France, you win a corner. The ball swings in... you and Hyuga both jump...",
-    emoji:"🌪️",
-    choices:[
-      {text:"Execute the Skylab Hurricane perfectly!",next:"dream_skylab_goal"},
-      {text:"Pull out — the timing feels wrong",next:"dream_skylab_miss"},
-    ]
-  },
-  dream_individual:{text:"You and Hyuga both play brilliantly on your own sides of the attack. France struggle to mark two unstoppable forwards at once! Hyuga scores with the Tiger Shot. You score with the Drive Shot. Japan wins 2-0. After the match Hyuga says quietly: 'Not bad, Ozora.'",emoji:"🤜",ending:"win"},
-  dream_skylab_goal:{text:"PERFECTION! You and Hyuga connect like a thunderbolt — the ball rockets into the top corner so fast the goalkeeper doesn't move! The stadium falls silent... then erupts! Japan wins 1-0. The commentators call it the greatest goal ever scored.",emoji:"🌠",ending:"win"},
-  dream_skylab_miss:{text:"You pull out — but Hyuga didn't! He connects alone and the ball flies wide. Hyuga glares at you. The match ends 0-0. In the dressing room, Hyuga says: 'If you're not sure, say so before the game.' It's a tough lesson — communication matters as much as skill.",emoji:"😓",ending:"lose"},
-  dream_misaki_goal:{text:"You sprint behind the French defence at full speed. Misaki's pass is inch-perfect — it drops right into your stride! You hammer it first time into the net. GOOOAL! The plan worked exactly as designed. Japan wins 1-0. Misaki runs to you: 'Perfect execution, Tsubasa!'",emoji:"🎉",ending:"win"},
-  dream_long_shot:{text:"You ignore the plan and shoot from 35 metres — right at the goalkeeper. He saves it easily. Misaki says nothing, but you see the disappointment. France counter-attack and score. Japan loses 1-0. Coach Kira is calm: 'Trust your teammates. A team is stronger than one.'",emoji:"😞",ending:"lose"},
-  dream_tired:{text:"You train all night. By morning your legs feel like lead. In the match, Schneider runs straight past you twice. Japan loses 2-0. In the dressing room you realise: rest is part of training. A tired body cannot do what a rested one can.",emoji:"😴",ending:"lose"},
-  dream_video:{text:"You spot it: Schneider always cuts inside on his left foot. You tell Genzo to position wide right. In the match, Schneider cuts inside — Genzo reads it perfectly and saves! On the counter-attack you score the Drive Shot. Japan wins 1-0! Schneider stares at you: 'How did you know?' You smile.",emoji:"🎬",ending:"win"},
-  dream_self_belief:{text:"You sleep well and eat a good breakfast. In the match you play your natural game — fast, joyful, fearless. Schneider tries to intimidate you, but you laugh it off. In the 80th minute you dribble past him and score. Japan wins 1-0. Afterwards Schneider says: 'You play with your heart.'",emoji:"💛",ending:"win"},
+  practice:{text:"You spend an hour perfecting your Drive Shot. The ball screams like a rocket! Coach Roberto nods. 'Your shot is strong, Tsubasa.' The match begins — 0-0. You get a free kick 30 metres out!",emoji:"🦵",choices:[{text:"Unleash the Drive Shot!",next:"drive_shot_win"},{text:"Pass to Oliver for a Twin Shot",next:"twin_shot"},{text:"Look up — Santana is rushing at you!",next:"santana_block"}]},
+  drive_shot_win:{text:"BOOM! The ball smashes into the top corner! GOOOAL! The crowd goes wild! Nankatsu wins! YOU WIN!",emoji:"🏆",ending:"win"},
+  twin_shot:{text:"You and Oliver kick at the same instant — the goalkeeper doesn't know which way to dive! DOUBLE GOAL! Nankatsu wins 2-0!",emoji:"🌟",ending:"win"},
+  santana_block:{text:"The fearsome Santana charges at you! You have a split second to decide.",emoji:"😰",choices:[{text:"Shoot through him",next:"santana_shoot"},{text:"Dribble left around him",next:"santana_dribble"},{text:"Dummy — let Oliver in",next:"oliver_shoots"}]},
+  santana_shoot:{text:"The ball deflects off Santana's shin and loops into the net! Lucky — but it counts! Nankatsu wins 1-0!",emoji:"🍀",ending:"win"},
+  santana_dribble:{text:"You feint left — Santana goes the wrong way! You slide the ball into the corner. GOOOAL! Nankatsu wins!",emoji:"💨",ending:"win"},
+  tactics:{text:"Oliver sketches a plan. 'Thumbs up means run into space.' In the match you spot Oliver give the signal!",emoji:"🤝",choices:[{text:"Sprint into space for the pass",next:"through_ball"},{text:"Fake the run — let Oliver shoot",next:"oliver_shoots"},{text:"Signal Oliver to make the run instead",next:"switch_roles"}]},
+  through_ball:{text:"Oliver's pass lands perfectly at your feet! One-on-one with the keeper — you chip it over! GOOOAL! Nankatsu wins!",emoji:"🏅",ending:"win"},
+  oliver_shoots:{text:"Three defenders chase you! Oliver is wide open and blasts it in! 'Great assist!' Oliver shouts. Nankatsu wins!",emoji:"🥇",ending:"win"},
+  switch_roles:{text:"Oliver makes the run. He squares it back to you — completely free! You smash a volley into the roof of the net. GOOOAL!",emoji:"🔄",ending:"win"},
+  scout:{text:"You notice the keeper always dives left! You tell Benji. Late in the game it's 1-1. You win a penalty!",emoji:"🔍",choices:[{text:"Shoot right — the keeper's weak side!",next:"penalty_win"},{text:"Blast it down the middle",next:"penalty_miss"},{text:"Let Benji take it",next:"benji_penalty"}]},
+  penalty_win:{text:"You shoot right — the keeper dives left! The ball rolls into the empty net. Nankatsu wins 2-1! Heroes!",emoji:"🎉",ending:"win"},
+  penalty_miss:{text:"The keeper catches it! 1-1. Extra time. Shutetsu scores. You lose 2-1. Roberto smiles: 'A loss teaches more than a win.'",emoji:"😤",ending:"lose"},
+  benji_penalty:{text:"'I trust you,' you say. Benji curls it into the top corner! Nankatsu wins 2-1! A true team victory!",emoji:"🤜🤛",ending:"win"},
+  genzo_talk:{text:"Genzo admits his hand is hurt. What do you do?",emoji:"🧤",choices:[{text:"Use it to your advantage",next:"genzo_exploit"},{text:"Tell your team to play fair",next:"genzo_fair"},{text:"Encourage him: 'Heart is stronger than hands'",next:"genzo_inspire"}]},
+  genzo_exploit:{text:"You win 2-0 but no one celebrates. Roberto: 'We won the match but lost our honour.'",emoji:"😔",ending:"lose"},
+  genzo_fair:{text:"You score a wonder goal from 40 metres. Genzo applauds. Nankatsu wins 1-0. A victory to be proud of!",emoji:"🤺",ending:"win"},
+  genzo_inspire:{text:"Inspired, Genzo plays his best match — and so do you! 1-1. Penalty shootout. You score the winner. 'Rivals and friends.'",emoji:"🌅",ending:"win"},
 };
-// ─── END OF STORY DATA ────────────────────────────────────────────────────────
 
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let myTeam  = [];   // starters — up to 5 players
+let myBench = null; // 1 bench player
+
+// ═══════════════════════════════════════════════════════════
+//  STORY RENDERER
+// ═══════════════════════════════════════════════════════════
 function render(nodeId) {
   const node = STORY[nodeId];
-  if (!node) { render("start"); return; }
-  const game = document.getElementById("game");
+  if (!node) { renderHome(); return; }
   const isWin  = node.ending === "win";
   const isLose = node.ending === "lose";
-  game.innerHTML = `
-    <div class="story-card${isWin?" card-win":isLose?" card-lose":""}">
-      <div class="emoji-display">${node.emoji}</div>
+  set(`
+    <div class="card${isWin?" card-win":isLose?" card-lose":""}">
+      <div class="emoji-big">${node.emoji}</div>
       <p class="story-text">${node.text}</p>
       ${node.ending ? `
         <div class="ending">
           ${isWin
             ? `<h2 class="win-title">🏆 VICTORY! 🏆</h2><p>You led your team to glory!</p>`
-            : `<h2 class="lose-title">😤 Keep Training!</h2><p>Every champion loses sometimes. Try again!</p>`}
-          <button class="btn btn-restart" onclick="render('start')">▶ Play Again</button>
-        </div>` : `
-        <div class="choices">
-          ${node.choices.map(c =>
-            `<button class="btn btn-choice" onclick="render('${c.next}')">${c.text}</button>`
-          ).join("")}
-        </div>`}
+            : `<h2 class="lose-title">😤 Keep Training!</h2><p>Every champion loses. Try again!</p>`}
+          <button class="btn btn-green" onclick="renderHome()">▶ Back to Menu</button>
+        </div>`
+      : `<div class="choices">${node.choices.map(c=>
+          `<button class="btn btn-blue" onclick="render('${c.next}')">${c.text}</button>`
+        ).join("")}</div>`}
+    </div>`);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HOME SCREEN — story + dream team buttons
+// ═══════════════════════════════════════════════════════════
+function renderHome() {
+  const node = STORY.start;
+  set(`
+    <div class="card">
+      <div class="emoji-big">${node.emoji}</div>
+      <p class="story-text">${node.text}</p>
+      <div class="choices">
+        ${node.choices.map(c=>
+          `<button class="btn btn-blue" onclick="render('${c.next}')">${c.text}</button>`
+        ).join("")}
+        <hr style="border:none;border-top:2px dashed #e0e0e0;margin:6px 0"/>
+        <button class="btn btn-purple" onclick="renderDreamTeamMenu()">🌟 Dream Team Builder</button>
+      </div>
+    </div>`);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DREAM TEAM MENU
+// ═══════════════════════════════════════════════════════════
+function renderDreamTeamMenu() {
+  set(`
+    <div class="card card-dream">
+      <div class="emoji-big">🌟</div>
+      <p class="story-text" style="text-align:center">
+        <strong>Welcome to the Dream Team Builder!</strong><br>
+        Pick your players and the computer will write the code for you.<br>
+        You will see how real programmers store a team in code!
+      </p>
+      <div class="choices">
+        <button class="btn btn-purple" onclick="renderCreateTeam()">👕 Create Your Dream Team</button>
+        <button class="btn btn-gold"   onclick="renderBenchPicker()">🪑 Choose Your Bench Player</button>
+        <button class="btn btn-green"  onclick="renderHome()" style="margin-top:6px">← Back</button>
+      </div>
+    </div>`);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CREATE DREAM TEAM — pick up to 5 starters
+// ═══════════════════════════════════════════════════════════
+function renderCreateTeam() {
+  function html() {
+    const slots = myTeam.length
+      ? myTeam.map(p=>`<span class="team-slot">${p.emoji} ${p.name} <span class="remove" onclick="removeFromTeam('${p.id}')">✕</span></span>`).join("")
+      : `<span class="slot-hint">Tap a player to add them!</span>`;
+    const cards = PLAYERS.map(p => {
+      const picked  = myTeam.find(x=>x.id===p.id);
+      const isBench = myBench && myBench.id === p.id;
+      const dis = isBench ? ' style="opacity:.4;pointer-events:none"' : '';
+      return `<div class="player-card${picked?" selected":""}"${dis} onclick="toggleTeam('${p.id}')">
+        <div class="pc-emoji">${p.emoji}</div>
+        <div class="pc-name">${p.name}</div>
+        <div class="pc-role">${p.role}</div>
+      </div>`;
+    }).join("");
+    return `
+      <div class="card card-dream">
+        <div class="dt-section-title">👕 Create Your Dream Team (pick up to 5)</div>
+        <div class="team-slots">${slots}</div>
+        <div class="player-grid">${cards}</div>
+        ${myTeam.length > 0 ? codeLessonTeam() : ""}
+        <div class="choices" style="margin-top:8px">
+          <button class="btn btn-purple" onclick="renderDreamTeamMenu()">← Back</button>
+        </div>
+      </div>`;
+  }
+  set(html());
+}
+
+function toggleTeam(id) {
+  const p = PLAYERS.find(x=>x.id===id);
+  const i = myTeam.findIndex(x=>x.id===id);
+  if (i >= 0) { myTeam.splice(i,1); }
+  else if (myTeam.length < 5) { myTeam.push(p); }
+  renderCreateTeam();
+}
+function removeFromTeam(id) { myTeam = myTeam.filter(x=>x.id!==id); renderCreateTeam(); }
+
+// ═══════════════════════════════════════════════════════════
+//  BENCH PICKER — pick 1 bench player
+// ═══════════════════════════════════════════════════════════
+function renderBenchPicker() {
+  const cards = PLAYERS.map(p => {
+    const isStarter = myTeam.find(x=>x.id===p.id);
+    const selected  = myBench && myBench.id === p.id;
+    const dis = isStarter ? ' style="opacity:.4;pointer-events:none"' : '';
+    return `<div class="player-card${selected?" selected":""}"${dis} onclick="pickBench('${p.id}')">
+      <div class="pc-emoji">${p.emoji}</div>
+      <div class="pc-name">${p.name}</div>
+      <div class="pc-role">${p.role}</div>
+    </div>`;
+  }).join("");
+  set(`
+    <div class="card card-dream">
+      <div class="dt-section-title">🪑 Choose Your Bench Player (pick 1)</div>
+      ${myBench ? `<p style="text-align:center;margin-bottom:14px;font-size:1rem">
+        Bench: <strong>${myBench.emoji} ${myBench.name}</strong>
+        <span style="cursor:pointer;color:#6a1b9a;margin-left:8px" onclick="myBench=null;renderBenchPicker()">✕ Remove</span>
+      </p>` : `<p style="text-align:center;color:#888;margin-bottom:14px;font-size:.9rem">Tap a player to put them on the bench</p>`}
+      <div class="player-grid">${cards}</div>
+      ${myBench ? codeLessonBench() : ""}
+      <div class="choices" style="margin-top:8px">
+        <button class="btn btn-purple" onclick="renderDreamTeamMenu()">← Back</button>
+      </div>
+    </div>`);
+}
+function pickBench(id) { myBench = PLAYERS.find(x=>x.id===id); renderBenchPicker(); }
+
+// ═══════════════════════════════════════════════════════════
+//  CODE LESSONS  — Grade 1 friendly
+// ═══════════════════════════════════════════════════════════
+function codeLessonTeam() {
+  const names = myTeam.map(p=>`"${p.name}"`).join(", ");
+  return `
+    <div class="code-lesson">
+      <h3>🧑‍💻 Look — you just wrote code!</h3>
+      <div class="code-line"><span class="hl-key">myDreamTeam</span> = [${
+        myTeam.map(p=>`<span class="hl-str">"${p.emoji} ${p.name}"</span>`).join(", ")
+      }]</div>
+      <div class="lesson-tip">
+        <strong>What is [ ] ?</strong><br>
+        Those square brackets make a <strong>LIST</strong>!<br>
+        In coding a list is called an <strong>array</strong>.<br>
+        Your team list has <strong>${myTeam.length} player${myTeam.length!==1?"s":""}!</strong><br>
+        Every time you picked a player, you added one item to the list. 🎉
+      </div>
     </div>`;
 }
 
-render("start");
+function codeLessonBench() {
+  return `
+    <div class="code-lesson">
+      <h3>🧑‍💻 Your bench in code!</h3>
+      <div class="code-line"><span class="hl-key">myBenchPlayer</span> = {<br>
+  <span class="hl-key">  name</span>: <span class="hl-str">"${myBench.name}"</span>,<br>
+  <span class="hl-key">  emoji</span>: <span class="hl-str">"${myBench.emoji}"</span>,<br>
+  <span class="hl-key">  role</span>: <span class="hl-str">"${myBench.role}"</span>,<br>
+  <span class="hl-key">  specialMove</span>: <span class="hl-str">"${myBench.move}"</span><br>
+}</div>
+      <div class="lesson-tip">
+        <strong>What is { } ?</strong><br>
+        Curly brackets make an <strong>OBJECT</strong>!<br>
+        An object stores lots of facts about ONE thing.<br>
+        Your bench player object has 4 facts: name, emoji, role, and special move! ⚽
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HELPER
+// ═══════════════════════════════════════════════════════════
+function set(html) { document.getElementById("game").innerHTML = html; }
+
+// ── Start ──
+renderHome();
 </script>
 </body>
 </html>
