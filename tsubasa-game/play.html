@@ -6,11 +6,14 @@
 <title>⚽ Captain Tsubasa Soccer in the Galaxy</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1a6b2f 0%,#0d4a8a 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.game-container{width:100%;max-width:740px}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#0a0015;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(138,43,226,.25) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(0,100,255,.2) 0%,transparent 50%),radial-gradient(ellipse at 60% 80%,rgba(255,0,150,.15) 0%,transparent 50%);pointer-events:none;z-index:0}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.game-container{width:100%;max-width:740px;position:relative;z-index:1}
 header{text-align:center;color:white;margin-bottom:24px}
-header h1{font-size:2rem;text-shadow:2px 2px 6px rgba(0,0,0,.5)}
-.subtitle{font-size:1rem;color:#c8e6c9;margin-top:6px}
+header h1{font-size:2rem;text-shadow:0 0 20px rgba(180,100,255,.8),0 0 40px rgba(100,150,255,.5),2px 2px 6px rgba(0,0,0,.8);background:linear-gradient(90deg,#a78bfa,#60a5fa,#f472b6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 4s linear infinite;background-size:200%}
+@keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}
+.subtitle{font-size:1rem;color:#c4b5fd;margin-top:6px}
 .card{background:white;border-radius:20px;padding:32px 36px;box-shadow:0 12px 40px rgba(0,0,0,.35);border-top:8px solid #1565c0;animation:fadeIn .35s ease}
 .card-win{border-top-color:#f9a825}
 .card-lose{border-top-color:#c62828}
@@ -70,6 +73,7 @@ footer{text-align:center;color:#a5d6a7;font-size:.8rem;margin-top:18px}
 </style>
 </head>
 <body>
+<canvas id="stars"></canvas>
 <div class="game-container">
   <header>
     <h1>⚽ Captain Tsubasa Soccer in the Galaxy</h1>
@@ -348,6 +352,16 @@ function codeLessonBench() {
 //  HELPER
 // ═══════════════════════════════════════════════════════════
 function set(html) { document.getElementById("game").innerHTML = html; }
+
+// ── Galaxy background ──
+(function(){
+  const c=document.getElementById("stars"),ctx=c.getContext("2d");
+  let stars=[];
+  function resize(){c.width=innerWidth;c.height=innerHeight;stars=Array.from({length:220},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.6+.3,speed:Math.random()*.4+.1,twinkle:Math.random()*Math.PI*2,color:["#ffffff","#c4b5fd","#93c5fd","#f9a8d4"][Math.floor(Math.random()*4)]}));}
+  resize();window.addEventListener("resize",resize);
+  function draw(){ctx.clearRect(0,0,c.width,c.height);const t=Date.now()/1000;stars.forEach(s=>{const alpha=.5+.5*Math.sin(t*s.speed+s.twinkle);ctx.globalAlpha=alpha;ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;requestAnimationFrame(draw);}
+  draw();
+})();
 
 // ── Start ──
 renderHome();
