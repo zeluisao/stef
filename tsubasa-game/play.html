@@ -260,6 +260,7 @@ function renderHome() {
         <hr style="border:none;border-top:2px dashed #e0e0e0;margin:6px 0"/>
         <button class="btn btn-purple" onclick="renderDreamTeamMenu()">🌟 Dream Team Builder</button>
         <button class="btn btn-gold"   onclick="renderJerseyBuilder()">👕 Create Your Own Jersey</button>
+        <button class="btn btn-green"  onclick="renderTeamName()">🏟️ Create Your Team Name</button>
       </div>
     </div>`);
 }
@@ -467,6 +468,7 @@ function set(html) { document.getElementById("game").innerHTML = html; }
 //  JERSEY BUILDER
 // ═══════════════════════════════════════════════════════════
 let jersey = {color1:"#1565c0", color2:"#ffffff", num:"10", name:"TSUBASA", pattern:"solid"};
+let myClub = {name:"Nankatsu FC", city:"Japan", badge:"⚽", color:"#1565c0"};
 const COLOURS = [
   {hex:"#ffffff",label:"White"},
   {hex:"#000000",label:"Black"},
@@ -555,6 +557,74 @@ function renderJerseyBuilder() {
     </div>`);
 }
 function updateJersey() { document.getElementById("jpreview").innerHTML=jerseySVG(jersey); }
+
+// ═══════════════════════════════════════════════════════════
+//  TEAM NAME BUILDER
+// ═══════════════════════════════════════════════════════════
+const BADGES  = ["⚽","🌟","🔥","⚡","🦅","🐯","🦁","🐉","🌙","💫","🏆","🛡️","🌊","🌋","🎯","👑"];
+const TCOLORS = [
+  {hex:"#1565c0",label:"Blue"},{hex:"#e53935",label:"Red"},{hex:"#2e7d32",label:"Green"},
+  {hex:"#f9a825",label:"Yellow"},{hex:"#6a1b9a",label:"Purple"},{hex:"#000000",label:"Black"},
+  {hex:"#ff6f00",label:"Orange"},{hex:"#00838f",label:"Teal"},{hex:"#ad1457",label:"Pink"},
+  {hex:"#37474f",label:"Grey"},{hex:"#ffffff",label:"White"},{hex:"#b71c1c",label:"Dark Red"},
+];
+
+function clubBadgeSVG(club) {
+  const c = club.color;
+  return `<svg viewBox="0 0 100 110" width="140" height="154" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 5 L90 20 L90 60 Q90 90 50 105 Q10 90 10 60 L10 20 Z" fill="${c}" stroke="white" stroke-width="3"/>
+    <path d="M50 12 L84 25 L84 60 Q84 85 50 98 Q16 85 16 60 L16 25 Z" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+    <text x="50" y="58" text-anchor="middle" font-size="28">${club.badge}</text>
+    <text x="50" y="80" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" font-weight="700" fill="white" letter-spacing="1">${club.name.toUpperCase().slice(0,12)}</text>
+    <text x="50" y="92" text-anchor="middle" font-family="Arial,sans-serif" font-size="6.5" fill="rgba(255,255,255,.75)">${club.city.toUpperCase().slice(0,14)}</text>
+  </svg>`;
+}
+
+function renderTeamName() {
+  set(`
+    <div class="card card-dream">
+      <div class="dt-section-title">🏟️ Create Your Team Name</div>
+      <div class="jersey-preview" id="clubpreview">${clubBadgeSVG(myClub)}</div>
+
+      <div class="jersey-controls" style="margin-bottom:14px">
+        <div class="ctrl-group">
+          <label>🏟️ Team Name</label>
+          <input type="text" maxlength="16" value="${myClub.name}" oninput="myClub.name=this.value;updateClub()">
+        </div>
+        <div class="ctrl-group">
+          <label>🌍 City / Country</label>
+          <input type="text" maxlength="16" value="${myClub.city}" oninput="myClub.city=this.value;updateClub()">
+        </div>
+      </div>
+
+      <div class="ctrl-group" style="margin-bottom:14px">
+        <label>🎨 Badge Colour</label>
+        <div class="swatch-row">${TCOLORS.map(c=>{
+          const isWhite=c.hex==="#ffffff";
+          const active=myClub.color===c.hex;
+          return`<div class="swatch${isWhite?" swatch-white":""}${active?" active":""}" style="background:${c.hex}" title="${c.label}" onclick="myClub.color='${c.hex}';renderTeamName()"></div>`;
+        }).join("")}</div>
+      </div>
+
+      <div class="ctrl-group" style="margin-bottom:18px">
+        <label>🦅 Badge Symbol</label>
+        <div class="swatch-row" style="gap:8px">${BADGES.map(b=>`
+          <div style="width:36px;height:36px;border-radius:8px;border:3px solid ${myClub.badge===b?"#333":"#e0e0e0"};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.4rem;background:${myClub.badge===b?"#ede7f6":"white"}" onclick="myClub.badge='${b}';renderTeamName()">${b}</div>`).join("")}
+        </div>
+      </div>
+
+      <div style="background:linear-gradient(135deg,${myClub.color},${myClub.color}cc);color:white;border-radius:14px;padding:14px;text-align:center;margin-bottom:16px">
+        <div style="font-size:1.5rem">${myClub.badge}</div>
+        <div style="font-size:1.2rem;font-weight:900;letter-spacing:2px">${myClub.name||"My Team"}</div>
+        <div style="font-size:.85rem;opacity:.85">${myClub.city||""}</div>
+      </div>
+
+      <div class="choices">
+        <button class="btn btn-purple" onclick="renderHome()">← Back to Menu</button>
+      </div>
+    </div>`);
+}
+function updateClub(){ document.getElementById("clubpreview").innerHTML=clubBadgeSVG(myClub); }
 
 // ── Galaxy background ──
 (function(){
