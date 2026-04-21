@@ -79,6 +79,17 @@ footer{text-align:center;color:#a5d6a7;font-size:.8rem;margin-top:18px}
 .code-line .hl-str{color:#fab387}
 .lesson-tip{margin-top:14px;background:#313244;border-radius:10px;padding:12px 14px;color:#cdd6f4;font-size:.88rem;line-height:1.6}
 .lesson-tip strong{color:#f9e2af}
+/* ── Jersey Builder ── */
+.jersey-preview{display:flex;justify-content:center;margin:16px 0}
+.jersey-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.ctrl-group{display:flex;flex-direction:column;gap:4px}
+.ctrl-group label{font-size:.8rem;font-weight:700;color:#555}
+.ctrl-group input[type=color]{width:100%;height:38px;border:2px solid #e0e0e0;border-radius:8px;cursor:pointer;padding:2px}
+.ctrl-group input[type=text],.ctrl-group input[type=number]{width:100%;padding:8px 10px;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;font-family:inherit}
+.pattern-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pat-btn{padding:7px 14px;border:2px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:700;background:white;transition:all .15s}
+.pat-btn.active{border-color:#6a1b9a;background:#ede7f6;color:#6a1b9a}
+.jersey-save-box{background:#f3e5f5;border-radius:12px;padding:14px;margin-top:12px;text-align:center}
 </style>
 </head>
 <body>
@@ -244,6 +255,7 @@ function renderHome() {
         ).join("")}
         <hr style="border:none;border-top:2px dashed #e0e0e0;margin:6px 0"/>
         <button class="btn btn-purple" onclick="renderDreamTeamMenu()">🌟 Dream Team Builder</button>
+        <button class="btn btn-gold"   onclick="renderJerseyBuilder()">👕 Create Your Own Jersey</button>
       </div>
     </div>`);
 }
@@ -446,6 +458,67 @@ function codeLessonBench() {
 //  HELPER
 // ═══════════════════════════════════════════════════════════
 function set(html) { document.getElementById("game").innerHTML = html; }
+
+// ═══════════════════════════════════════════════════════════
+//  JERSEY BUILDER
+// ═══════════════════════════════════════════════════════════
+let jersey = {color1:"#1565c0", color2:"#ffffff", num:"10", name:"TSUBASA", pattern:"solid"};
+const PATTERNS = ["solid","stripes","hoops","diagonal","half"];
+
+function jerseyPattern(color1, color2, pattern) {
+  switch(pattern) {
+    case "stripes":   return `<defs><pattern id="jp" x="0" y="0" width="14" height="100" patternUnits="userSpaceOnUse"><rect width="7" height="100" fill="${color1}"/><rect x="7" width="7" height="100" fill="${color2}"/></pattern></defs><path d="M30 10 L10 30 L25 35 L25 110 L95 110 L95 35 L110 30 L90 10 L70 20 Q60 5 50 20 Z" fill="url(#jp)" stroke="${color2}" stroke-width="2"/>`;
+    case "hoops":     return `<defs><pattern id="jp" x="0" y="0" width="100" height="16" patternUnits="userSpaceOnUse"><rect width="100" height="8" fill="${color1}"/><rect y="8" width="100" height="8" fill="${color2}"/></pattern></defs><path d="M30 10 L10 30 L25 35 L25 110 L95 110 L95 35 L110 30 L90 10 L70 20 Q60 5 50 20 Z" fill="url(#jp)" stroke="${color2}" stroke-width="2"/>`;
+    case "diagonal":  return `<defs><pattern id="jp" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><line x1="0" y1="20" x2="20" y2="0" stroke="${color2}" stroke-width="7"/></pattern></defs><path d="M30 10 L10 30 L25 35 L25 110 L95 110 L95 35 L110 30 L90 10 L70 20 Q60 5 50 20 Z" fill="${color1}" stroke="${color2}" stroke-width="2"/><path d="M30 10 L10 30 L25 35 L25 110 L95 110 L95 35 L110 30 L90 10 L70 20 Q60 5 50 20 Z" fill="url(#jp)"/>`;
+    case "half":      return `<path d="M30 10 L10 30 L25 35 L25 110 L60 110 L60 12 Q55 3 50 20 Z" fill="${color2}"/><path d="M60 12 L60 110 L95 110 L95 35 L110 30 L90 10 L70 20 Q65 3 60 12 Z" fill="${color1}"/>`;
+    default:          return `<path d="M30 10 L10 30 L25 35 L25 110 L95 110 L95 35 L110 30 L90 10 L70 20 Q60 5 50 20 Z" fill="${color1}" stroke="${color2}" stroke-width="3"/>`;
+  }
+}
+
+function jerseySVG(j) {
+  const textColor = j.pattern==="half" ? j.color1 : j.color2;
+  const outline   = j.pattern==="half" ? j.color2 : j.color1;
+  return `<svg viewBox="0 0 120 120" width="180" height="180" xmlns="http://www.w3.org/2000/svg">
+    ${jerseyPattern(j.color1, j.color2, j.pattern)}
+    <path d="M30 10 L10 30 L25 35 L25 110 L95 110 L95 35 L110 30 L90 10 L70 20 Q60 5 50 20 Z" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="1.5"/>
+    <text x="60" y="72" text-anchor="middle" font-family="Arial Black,sans-serif" font-size="26" font-weight="900" fill="${textColor}" stroke="${outline}" stroke-width="2">${j.num||"10"}</text>
+    <text x="60" y="100" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="${textColor}" stroke="${outline}" stroke-width="1" letter-spacing="1">${(j.name||"PLAYER").toUpperCase().slice(0,10)}</text>
+  </svg>`;
+}
+
+function renderJerseyBuilder() {
+  set(`
+    <div class="card card-dream">
+      <div class="dt-section-title">👕 Create Your Own Jersey</div>
+      <div class="jersey-preview" id="jpreview">${jerseySVG(jersey)}</div>
+      <div class="jersey-controls">
+        <div class="ctrl-group">
+          <label>🎨 Main Colour</label>
+          <input type="color" value="${jersey.color1}" oninput="jersey.color1=this.value;updateJersey()">
+        </div>
+        <div class="ctrl-group">
+          <label>✨ Trim Colour</label>
+          <input type="color" value="${jersey.color2}" oninput="jersey.color2=this.value;updateJersey()">
+        </div>
+        <div class="ctrl-group">
+          <label>🔢 Number</label>
+          <input type="number" min="1" max="99" value="${jersey.num}" oninput="jersey.num=this.value;updateJersey()">
+        </div>
+        <div class="ctrl-group">
+          <label>🏷️ Player Name</label>
+          <input type="text" maxlength="10" value="${jersey.name}" oninput="jersey.name=this.value;updateJersey()">
+        </div>
+      </div>
+      <div style="font-size:.8rem;font-weight:700;color:#555;margin-bottom:8px">👕 Pattern</div>
+      <div class="pattern-row">
+        ${PATTERNS.map(p=>`<button class="pat-btn${jersey.pattern===p?" active":""}" onclick="jersey.pattern='${p}';renderJerseyBuilder()">${p.charAt(0).toUpperCase()+p.slice(1)}</button>`).join("")}
+      </div>
+      <div class="choices">
+        <button class="btn btn-purple" onclick="renderHome()">← Back to Menu</button>
+      </div>
+    </div>`);
+}
+function updateJersey() { document.getElementById("jpreview").innerHTML=jerseySVG(jersey); }
 
 // ── Galaxy background ──
 (function(){
