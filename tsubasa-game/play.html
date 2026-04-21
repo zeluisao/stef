@@ -84,12 +84,16 @@ footer{text-align:center;color:#a5d6a7;font-size:.8rem;margin-top:18px}
 .jersey-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
 .ctrl-group{display:flex;flex-direction:column;gap:4px}
 .ctrl-group label{font-size:.8rem;font-weight:700;color:#555}
-.ctrl-group input[type=color]{width:100%;height:38px;border:2px solid #e0e0e0;border-radius:8px;cursor:pointer;padding:2px}
 .ctrl-group input[type=text],.ctrl-group input[type=number]{width:100%;padding:8px 10px;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;font-family:inherit}
+.swatch-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.swatch{width:30px;height:30px;border-radius:6px;cursor:pointer;border:3px solid transparent;transition:transform .1s,border-color .1s;flex-shrink:0}
+.swatch:hover{transform:scale(1.15)}
+.swatch.active{border-color:#333;transform:scale(1.15)}
+.swatch-white{border-color:#ccc}
+.swatch-white.active{border-color:#333}
 .pattern-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .pat-btn{padding:7px 14px;border:2px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:700;background:white;transition:all .15s}
 .pat-btn.active{border-color:#6a1b9a;background:#ede7f6;color:#6a1b9a}
-.jersey-save-box{background:#f3e5f5;border-radius:12px;padding:14px;margin-top:12px;text-align:center}
 </style>
 </head>
 <body>
@@ -463,6 +467,24 @@ function set(html) { document.getElementById("game").innerHTML = html; }
 //  JERSEY BUILDER
 // ═══════════════════════════════════════════════════════════
 let jersey = {color1:"#1565c0", color2:"#ffffff", num:"10", name:"TSUBASA", pattern:"solid"};
+const COLOURS = [
+  {hex:"#ffffff",label:"White"},
+  {hex:"#000000",label:"Black"},
+  {hex:"#e53935",label:"Red"},
+  {hex:"#1565c0",label:"Blue"},
+  {hex:"#2e7d32",label:"Green"},
+  {hex:"#f9a825",label:"Yellow"},
+  {hex:"#ff6f00",label:"Orange"},
+  {hex:"#6a1b9a",label:"Purple"},
+  {hex:"#00838f",label:"Teal"},
+  {hex:"#ad1457",label:"Pink"},
+  {hex:"#37474f",label:"Grey"},
+  {hex:"#4a148c",label:"Violet"},
+  {hex:"#1b5e20",label:"Dark Green"},
+  {hex:"#b71c1c",label:"Dark Red"},
+  {hex:"#0d47a1",label:"Dark Blue"},
+  {hex:"#e8f5e9",label:"Light Green"},
+];
 const PATTERNS = ["solid","stripes","hoops","diagonal","half"];
 
 function jerseyPattern(color1, color2, pattern) {
@@ -486,22 +508,35 @@ function jerseySVG(j) {
   </svg>`;
 }
 
+function swatches(field) {
+  return COLOURS.map(c => {
+    const isWhite = c.hex === "#ffffff";
+    const active  = jersey[field] === c.hex;
+    return `<div class="swatch${isWhite?" swatch-white":""}${active?" active":""}"
+      style="background:${c.hex}"
+      title="${c.label}"
+      onclick="jersey.${field}='${c.hex}';renderJerseyBuilder()"></div>`;
+  }).join("");
+}
+
 function renderJerseyBuilder() {
   set(`
     <div class="card card-dream">
       <div class="dt-section-title">👕 Create Your Own Jersey</div>
       <div class="jersey-preview" id="jpreview">${jerseySVG(jersey)}</div>
+
+      <div class="ctrl-group" style="margin-bottom:12px">
+        <label>🎨 Main Colour</label>
+        <div class="swatch-row">${swatches("color1")}</div>
+      </div>
+      <div class="ctrl-group" style="margin-bottom:12px">
+        <label>✨ Trim Colour</label>
+        <div class="swatch-row">${swatches("color2")}</div>
+      </div>
+
       <div class="jersey-controls">
         <div class="ctrl-group">
-          <label>🎨 Main Colour</label>
-          <input type="color" value="${jersey.color1}" oninput="jersey.color1=this.value;updateJersey()">
-        </div>
-        <div class="ctrl-group">
-          <label>✨ Trim Colour</label>
-          <input type="color" value="${jersey.color2}" oninput="jersey.color2=this.value;updateJersey()">
-        </div>
-        <div class="ctrl-group">
-          <label>🔢 Number</label>
+          <label>🔢 Number (1–99)</label>
           <input type="number" min="1" max="99" value="${jersey.num}" oninput="jersey.num=this.value;updateJersey()">
         </div>
         <div class="ctrl-group">
@@ -509,6 +544,7 @@ function renderJerseyBuilder() {
           <input type="text" maxlength="10" value="${jersey.name}" oninput="jersey.name=this.value;updateJersey()">
         </div>
       </div>
+
       <div style="font-size:.8rem;font-weight:700;color:#555;margin-bottom:8px">👕 Pattern</div>
       <div class="pattern-row">
         ${PATTERNS.map(p=>`<button class="pat-btn${jersey.pattern===p?" active":""}" onclick="jersey.pattern='${p}';renderJerseyBuilder()">${p.charAt(0).toUpperCase()+p.slice(1)}</button>`).join("")}
