@@ -290,10 +290,12 @@ function renderHome() {
       </div>
 
       <div class="choices">
+        <button class="btn btn-gold" style="font-size:1.1rem;padding:16px" onclick="quickMatch()">⚽ PLAY MATCH NOW!</button>
+        <hr style="border:none;border-top:2px dashed #e0e0e0;margin:4px 0"/>
         ${STORY.start.choices.map(c=>
           `<button class="btn btn-blue" onclick="render('${c.next}')">${c.text}</button>`
         ).join("")}
-        <hr style="border:none;border-top:2px dashed #e0e0e0;margin:6px 0"/>
+        <hr style="border:none;border-top:2px dashed #e0e0e0;margin:4px 0"/>
         <button class="btn btn-purple" onclick="renderDreamTeamMenu()">🌟 Dream Team Builder</button>
         <button class="btn btn-gold"   onclick="renderJerseyBuilder()">👕 Create Your Own Jersey</button>
         <button class="btn btn-green"  onclick="renderTeamName()">🏟️ Create Your Team Name</button>
@@ -409,6 +411,13 @@ const RIVALS = [
 ];
 
 let M = {}; // match state
+
+function quickMatch() {
+  if (myTeam.length < 2) {
+    myTeam = PLAYERS.filter(p=>["tsubasa","hyuga","misaki","benji","matsuyama"].includes(p.id));
+  }
+  renderMatch();
+}
 
 function renderMatch() {
   const rival = RIVALS[Math.floor(Math.random()*RIVALS.length)];
