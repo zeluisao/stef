@@ -46,6 +46,42 @@ footer{text-align:center;color:#a5d6a7;font-size:.8rem;margin-top:18px}
 .pcard .pn{font-size:.68rem;font-weight:700;color:#1a1a1a;margin-top:2px;white-space:nowrap}
 .field-divider{height:2px;background:rgba(255,255,255,.3);margin:6px 16px;border-radius:2px}
 
+/* ── Match Engine ── */
+.match-header{background:linear-gradient(90deg,#1a237e,#283593,#1a237e);border-radius:14px 14px 0 0;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;color:white;font-weight:700;font-size:.85rem}
+.match-score{font-size:1.8rem;font-weight:900;letter-spacing:4px;text-shadow:0 0 10px rgba(255,220,0,.8);color:#ffd700}
+.match-timer{background:rgba(0,0,0,.4);padding:4px 10px;border-radius:8px;font-size:.9rem}
+.match-body{background:linear-gradient(180deg,#1b5e20,#2e7d32,#1b5e20);padding:10px;display:grid;grid-template-columns:110px 1fr 110px;gap:8px;align-items:center;min-height:160px}
+.hud-card{background:linear-gradient(160deg,#0d47a1,#1565c0);border-radius:12px;padding:8px;color:white;text-align:center;border:2px solid rgba(255,255,255,.3)}
+.hud-card.enemy{background:linear-gradient(160deg,#b71c1c,#c62828)}
+.hud-rank{font-size:.55rem;font-weight:900;background:#ff6f00;color:white;border-radius:4px;padding:1px 4px;display:inline-block;margin-bottom:4px}
+.hud-emoji{font-size:2.4rem;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.hud-name{font-size:.7rem;font-weight:700;margin:3px 0}
+.hud-lv{font-size:.6rem;opacity:.8}
+.hud-pos{background:rgba(255,255,255,.2);border-radius:4px;font-size:.6rem;font-weight:700;padding:1px 5px;display:inline-block;margin-bottom:4px}
+.energy-wrap{background:rgba(0,0,0,.3);border-radius:4px;height:10px;margin-top:4px;overflow:hidden}
+.energy-fill{height:100%;background:linear-gradient(90deg,#f9a825,#ffd54f);border-radius:4px;transition:width .4s}
+.energy-txt{font-size:.55rem;color:rgba(255,255,255,.8);margin-top:2px}
+.match-log{background:rgba(0,0,0,.4);border-radius:10px;padding:8px;color:white;font-size:.78rem;line-height:1.6;min-height:100px;max-height:120px;overflow-y:auto;text-align:center}
+.match-footer{background:#1a1a2e;border-radius:0 0 14px 14px;padding:10px}
+.tactics-row{display:flex;gap:6px;justify-content:center;margin-bottom:8px}
+.tac-btn{padding:5px 14px;border:2px solid rgba(255,255,255,.3);border-radius:20px;background:transparent;color:rgba(255,255,255,.7);font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s}
+.tac-btn.active{background:white;color:#1a1a2e;border-color:white}
+.action-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+.act-btn{background:linear-gradient(160deg,#283593,#3949ab);color:white;border:none;border-radius:10px;padding:8px 4px;cursor:pointer;text-align:center;transition:all .15s;font-family:inherit}
+.act-btn:hover{transform:translateY(-2px);filter:brightness(1.2)}
+.act-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.act-btn .act-icon{font-size:1.3rem}
+.act-btn .act-name{font-size:.62rem;font-weight:700;display:block;margin:2px 0}
+.act-btn .act-cost{font-size:.6rem;color:#ffd54f}
+.act-btn.special{background:linear-gradient(160deg,#b71c1c,#e53935)}
+.fp-row{display:flex;align-items:center;gap:8px;margin-top:6px}
+.fp-label{color:#ffd700;font-size:.7rem;font-weight:700;white-space:nowrap}
+.fp-track{flex:1;background:rgba(255,255,255,.15);border-radius:6px;height:12px;overflow:hidden}
+.fp-fill{height:100%;background:linear-gradient(90deg,#f57f17,#ffd54f,#fff176);border-radius:6px;transition:width .5s}
+.fp-btn{background:linear-gradient(135deg,#f57f17,#ffd54f);color:#1a1a1a;border:none;border-radius:8px;padding:5px 10px;font-weight:900;font-size:.72rem;cursor:pointer;white-space:nowrap;display:none}
+.fp-btn.ready{display:block;animation:pulse .8s infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.3)}}
+
 /* ── Dream Team ── */
 .dt-section-title{font-size:1.3rem;font-weight:700;color:#6a1b9a;margin-bottom:16px;text-align:center}
 .player-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
@@ -346,73 +382,235 @@ function toggleBench(id) {
 // ═══════════════════════════════════════════════════════════
 //  MATCH SIMULATION
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+//  DREAM TEAM MATCH ENGINE
+// ═══════════════════════════════════════════════════════════
 const RIVALS = [
-  {name:"Shutetsu",  power:72, emoji:"🔴"},
-  {name:"Toho",      power:80, emoji:"🟡"},
-  {name:"France",    power:85, emoji:"🇫🇷"},
-  {name:"W.Germany", power:90, emoji:"🇩🇪"},
-  {name:"Brazil",    power:95, emoji:"🇧🇷"},
+  {name:"Shutetsu",    emoji:"🔴", players:[
+    {name:"Mikami",  emoji:"😤",role:"FW",spd:70,sht:72,drb:68,pas:65,energy:800,maxE:800},
+    {name:"Kodama",  emoji:"💪",role:"GK",spd:65,sht:50,drb:55,pas:60,energy:750,maxE:750},
+  ]},
+  {name:"Toho",        emoji:"🟡", players:[
+    {name:"Hyuga",   emoji:"🐯",role:"FW",spd:88,sht:98,drb:75,pas:65,energy:950,maxE:950},
+    {name:"Wakashimazu",emoji:"🦅",role:"GK",spd:78,sht:49,drb:54,pas:63,energy:880,maxE:880},
+  ]},
+  {name:"France",      emoji:"🇫🇷", players:[
+    {name:"Pierre",  emoji:"🥐",role:"MF",spd:78,sht:76,drb:86,pas:84,energy:900,maxE:900},
+    {name:"Napoleon",emoji:"👑",role:"DF",spd:71,sht:60,drb:63,pas:73,energy:860,maxE:860},
+  ]},
+  {name:"W.Germany",   emoji:"🇩🇪", players:[
+    {name:"Schneider",emoji:"⚡",role:"MF",spd:99,sht:88,drb:84,pas:78,energy:980,maxE:980},
+    {name:"Kaltz",   emoji:"🏰",role:"DF",spd:73,sht:62,drb:64,pas:74,energy:870,maxE:870},
+  ]},
+  {name:"Brazil",      emoji:"🇧🇷", players:[
+    {name:"Natureza",emoji:"🌺",role:"FW",spd:90,sht:82,drb:94,pas:76,energy:1000,maxE:1000},
+    {name:"Santana", emoji:"💪",role:"MF",spd:87,sht:85,drb:96,pas:72,energy:990,maxE:990},
+  ]},
 ];
+
+let M = {}; // match state
 
 function renderMatch() {
   const rival = RIVALS[Math.floor(Math.random()*RIVALS.length)];
-  const myPow = teamPower(myTeam);
+  const myP   = myTeam.length ? myTeam[0] : PLAYERS[0];
+  const enyP  = rival.players[0];
+  const myPow = teamPower(myTeam)||75;
   set(`
-    <div class="card card-dream">
-      <div class="dt-section-title">⚽ Match Time!</div>
-      <div style="display:flex;justify-content:space-around;align-items:center;margin:16px 0;font-size:1rem;font-weight:700">
-        <div style="text-align:center">
-          <div style="font-size:2.5rem">🇯🇵</div>
-          <div>Japan</div>
-          <div style="color:#6a1b9a">Power: ${myPow}</div>
-        </div>
-        <div style="font-size:1.5rem">VS</div>
-        <div style="text-align:center">
-          <div style="font-size:2.5rem">${rival.emoji}</div>
-          <div>${rival.name}</div>
-          <div style="color:#c62828">Power: ${rival.power}</div>
-        </div>
+    <div style="background:#1a1a2e;border-radius:18px;padding:16px;color:white">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:2rem">⚽ vs ${rival.emoji}</div>
+        <div style="font-size:1.1rem;font-weight:700;margin:4px 0">${myClub.name||"Japan"} vs ${rival.name}</div>
+        <div style="opacity:.7;font-size:.85rem">Your Power: <b>${myPow}</b> &nbsp;|&nbsp; Rival Power: <b>${rival.players.reduce((s,p)=>s+p.sht+p.spd,0)/rival.players.length/2|0}</b></div>
       </div>
-      <p style="text-align:center;color:#555;margin-bottom:20px">Your team power is <strong>${myPow}</strong>. ${rival.name} has <strong>${rival.power}</strong>. Ready?</p>
       <div class="choices">
-        <button class="btn btn-gold" onclick="simulateMatch(${rival.power},'${rival.name}')">🏃 Kick Off!</button>
+        <button class="btn btn-gold" onclick="startDreamMatch('${rival.name}','${rival.emoji}')">⚽ Kick Off!</button>
         <button class="btn btn-purple" onclick="renderDreamTeamMenu()">← Back</button>
       </div>
     </div>`);
 }
 
-function simulateMatch(rivalPow, rivalName) {
-  const myPow = teamPower(myTeam);
-  const advantage = myPow - rivalPow;
-  let myGoals=0, theirGoals=0, events=[];
-  for (let min=10; min<=90; min+=10) {
-    const rand = Math.random()*100 + advantage*0.4;
-    if (rand > 52) {
-      myGoals++;
-      const scorer = myTeam[Math.floor(Math.random()*myTeam.length)];
-      events.push(`⚽ ${min}' — ${scorer.emoji} <strong>${scorer.name}</strong> scores with the <em>${scorer.move}</em>! ${myGoals}-${theirGoals}`);
-    } else if (rand < 44) {
-      theirGoals++;
-      events.push(`😨 ${min}' — ${rivalName} scores! ${myGoals}-${theirGoals}`);
+function startDreamMatch(rivalName, rivalEmoji) {
+  const rival = RIVALS.find(r=>r.name===rivalName) || RIVALS[0];
+  const myStarters = myTeam.length ? myTeam : [PLAYERS[0]];
+  M = {
+    half:1, minute:0, score:[0,0],
+    fp:0, tactics:"balance",
+    myIdx:0, enIdx:0,
+    myPlayers: myStarters.map(p=>({...p, energy:p.spd*10+200, maxE:p.spd*10+200})),
+    enPlayers: rival.players,
+    rival:{name:rivalName, emoji:rivalEmoji},
+    log:["⚽ Kick off! Match starts!"],
+    possession:"player",
+  };
+  drawMatch();
+}
+
+function drawMatch() {
+  const mp = M.myPlayers[M.myIdx];
+  const ep = M.enPlayers[M.enIdx % M.enPlayers.length];
+  const myTeamName = myClub.name || "Japan";
+  const minStr = M.minute+"'";
+  const halfStr = M.half===1?"1st Half":"2nd Half";
+  const myEpct  = Math.round(mp.energy/mp.maxE*100);
+  const enEpct  = Math.round(ep.energy/ep.maxE*100);
+  const fpPct   = Math.round(M.fp);
+  const canShoot   = mp.energy >= 60;
+  const canPass    = mp.energy >= 40;
+  const canDribble = mp.energy >= 50;
+  const canSpecial = mp.energy >= 100;
+
+  set(`
+    <div style="border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+
+      <!-- HEADER -->
+      <div class="match-header">
+        <div style="font-size:.75rem">${myTeamName}<br><span style="opacity:.7">${halfStr}</span></div>
+        <div style="text-align:center">
+          <div class="match-score">${M.score[0]} - ${M.score[1]}</div>
+          <div class="match-timer">⏱ ${minStr}</div>
+        </div>
+        <div style="font-size:.75rem;text-align:right">${M.rival.emoji} ${M.rival.name}</div>
+      </div>
+
+      <!-- BODY -->
+      <div class="match-body">
+        <!-- My player -->
+        <div class="hud-card">
+          <div class="hud-rank">UR</div>
+          <div class="hud-emoji">${mp.emoji}</div>
+          <div class="hud-name">${mp.name}</div>
+          <div><span class="hud-pos">${mp.role}</span></div>
+          <div class="hud-lv">Lv.99</div>
+          <div class="energy-wrap"><div class="energy-fill" style="width:${myEpct}%"></div></div>
+          <div class="energy-txt">⚡ ${mp.energy}/${mp.maxE}</div>
+        </div>
+
+        <!-- Match log -->
+        <div class="match-log" id="mlog">${M.log.slice(-5).join("<br>")}</div>
+
+        <!-- Enemy player -->
+        <div class="hud-card enemy">
+          <div class="hud-rank" style="background:#6a1b9a">UR</div>
+          <div class="hud-emoji">${ep.emoji}</div>
+          <div class="hud-name">${ep.name}</div>
+          <div><span class="hud-pos">${ep.role}</span></div>
+          <div class="hud-lv">Lv.99</div>
+          <div class="energy-wrap"><div class="energy-fill" style="width:${enEpct}%;background:linear-gradient(90deg,#e53935,#ef9a9a)"></div></div>
+          <div class="energy-txt">⚡ ${ep.energy}/${ep.maxE}</div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="match-footer">
+        <!-- Tactics -->
+        <div class="tactics-row">
+          ${["defence","balance","offence"].map(t=>`<button class="tac-btn${M.tactics===t?" active":""}" onclick="M.tactics='${t}';drawMatch()">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join("")}
+        </div>
+
+        <!-- Actions -->
+        <div class="action-row">
+          <button class="act-btn" onclick="doAction('shoot')" ${canShoot?"":"disabled"}>
+            <div class="act-icon">🦵</div>
+            <span class="act-name">SHOOT</span>
+            <div class="act-cost">⚡60 | PWR ${mp.sht*7}</div>
+          </button>
+          <button class="act-btn" onclick="doAction('pass')" ${canPass?"":"disabled"}>
+            <div class="act-icon">🎯</div>
+            <span class="act-name">PASS</span>
+            <div class="act-cost">⚡40 | PWR ${mp.pas*7}</div>
+          </button>
+          <button class="act-btn" onclick="doAction('dribble')" ${canDribble?"":"disabled"}>
+            <div class="act-icon">💨</div>
+            <span class="act-name">DRIBBLE</span>
+            <div class="act-cost">⚡50 | PWR ${mp.drb*7}</div>
+          </button>
+          <button class="act-btn special" onclick="doAction('special')" ${canSpecial?"":"disabled"}>
+            <div class="act-icon">🔥</div>
+            <span class="act-name">SPECIAL</span>
+            <div class="act-cost">⚡100</div>
+          </button>
+        </div>
+
+        <!-- Full Power -->
+        <div class="fp-row">
+          <div class="fp-label">⚡FULL<br>POWER</div>
+          <div class="fp-track"><div class="fp-fill" style="width:${fpPct}%"></div></div>
+          <button class="fp-btn${M.fp>=100?" ready":""}" onclick="doAction('fullpower')">FULL<br>POWER!</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+function doAction(type) {
+  const mp = M.myPlayers[M.myIdx];
+  const ep = M.enPlayers[M.enIdx % M.enPlayers.length];
+  const tacBonus = M.tactics==="offence"?1.2:M.tactics==="defence"?0.85:1;
+  const tacDef   = M.tactics==="defence"?1.2:M.tactics==="offence"?0.85:1;
+  M.minute = Math.min(90, M.minute + (5+Math.floor(Math.random()*5)));
+  M.fp = Math.min(100, M.fp + 8);
+
+  let msg="";
+  if (type==="shoot") {
+    mp.energy = Math.max(0, mp.energy-60);
+    const pwr  = mp.sht * tacBonus * (0.8+Math.random()*0.5);
+    const def  = ep.spd * tacDef   * (0.7+Math.random()*0.6);
+    if (pwr > def) {
+      M.score[0]++;
+      M.fp = Math.min(100, M.fp+12);
+      msg=`⚽ GOOOAL! ${mp.emoji} ${mp.name} scores with the ${mp.move}! ${M.score[0]}-${M.score[1]}`;
     } else {
-      events.push(`🔄 ${min}' — Tough battle. No score.`);
+      msg=`🧤 ${ep.emoji} ${ep.name} saves the shot!`;
     }
+  } else if (type==="pass") {
+    mp.energy = Math.max(0, mp.energy-40);
+    const nxt = M.myPlayers[(M.myIdx+1)%M.myPlayers.length];
+    M.myIdx = (M.myIdx+1)%M.myPlayers.length;
+    msg=`🎯 ${mp.emoji} ${mp.name} passes to ${nxt.emoji} ${nxt.name}!`;
+  } else if (type==="dribble") {
+    mp.energy = Math.max(0, mp.energy-50);
+    const pwr = mp.drb * tacBonus * (0.8+Math.random()*0.5);
+    const def = ep.spd * (0.7+Math.random()*0.6);
+    if (pwr > def) { msg=`💨 ${mp.emoji} ${mp.name} dribbles past the defender!`; }
+    else { ep.energy=Math.max(0,ep.energy-80); msg=`🛡️ Defender tackles ${mp.name}! Tough challenge.`; }
+  } else if (type==="special") {
+    mp.energy = Math.max(0, mp.energy-100);
+    M.fp = Math.min(100, M.fp+20);
+    const pwr = Math.max(mp.sht,mp.drb,mp.spd) * 1.4 * (0.9+Math.random()*0.3);
+    const def = ep.spd * (0.7+Math.random()*0.6);
+    if (pwr > def) { M.score[0]++; msg=`🔥 SPECIAL MOVE! ${mp.emoji} ${mp.name} uses the ${mp.move}! GOAL! ${M.score[0]}-${M.score[1]}`; }
+    else { msg=`💥 ${mp.emoji} ${mp.name} unleashes ${mp.move}... but it's blocked!`; }
+  } else if (type==="fullpower") {
+    M.fp=0;
+    M.score[0]++;
+    msg=`✨ FULL POWER! ${mp.emoji} ${mp.name} — UNSTOPPABLE! GOAL! ${M.score[0]}-${M.score[1]}`;
   }
-  const win = myGoals > theirGoals;
-  const draw = myGoals === theirGoals;
+
+  // Enemy counter
+  if (Math.random() < 0.28 + (M.tactics==="defence"?-0.08:M.tactics==="offence"?0.08:0)) {
+    M.score[1]++;
+    msg += `<br>😨 ${ep.emoji} ${ep.name} counter-attacks! ${M.rival.name} scores! ${M.score[0]}-${M.score[1]}`;
+  }
+
+  M.log.push(msg);
+
+  if (M.minute >= 45 && M.half===1) { M.half=2; M.minute=45; M.log.push("🔔 HALF TIME! 2nd half begins!"); }
+  if (M.minute >= 90) { endMatch(); return; }
+  drawMatch();
+}
+
+function endMatch() {
+  const win = M.score[0]>M.score[1], draw=M.score[0]===M.score[1];
   set(`
     <div class="card${win?" card-win":draw?"":" card-lose"}">
       <div class="emoji-big">${win?"🏆":draw?"🤝":"😤"}</div>
-      <h2 style="text-align:center;margin-bottom:8px;font-size:1.5rem">
-        ${win?"VICTORY!":draw?"DRAW!":"DEFEAT!"}
-      </h2>
+      <h2 style="text-align:center;margin-bottom:8px">${win?"VICTORY!":draw?"DRAW!":"DEFEAT!"}</h2>
       <div class="score-bar" style="margin:12px 0">
-        <div><div class="team">Japan</div><div class="score-num">${myGoals}</div></div>
-        <div style="font-size:.8rem;opacity:.7">FINAL</div>
-        <div style="text-align:right"><div class="team">${rivalName}</div><div class="score-num">${theirGoals}</div></div>
+        <div><div class="team">${myClub.name||"Japan"}</div><div class="score-num">${M.score[0]}</div></div>
+        <div style="font-size:.8rem;opacity:.7">FULL TIME</div>
+        <div style="text-align:right"><div class="team">${M.rival.name}</div><div class="score-num">${M.score[1]}</div></div>
       </div>
-      <div style="background:#f5f5f5;border-radius:12px;padding:14px;margin-bottom:16px;font-size:.9rem;line-height:2">
-        ${events.join("<br>")}
+      <div style="background:#f5f5f5;border-radius:12px;padding:12px;margin-bottom:14px;font-size:.85rem;line-height:2;max-height:200px;overflow-y:auto">
+        ${M.log.join("<br>")}
       </div>
       <div class="choices">
         <button class="btn btn-gold" onclick="renderMatch()">⚽ Play Again</button>
