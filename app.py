@@ -12,7 +12,7 @@ with open("api_key.txt", encoding="utf-8-sig") as f:
     API_KEY = f.read().strip()
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "google/gemini-2.0-flash-exp:free"
+MODELS_URL = "https://openrouter.ai/api/v1/models"
 
 PROMPT = """Look at this fridge photo carefully.
 
@@ -38,6 +38,28 @@ Respond with ONLY valid JSON in exactly this format (no markdown, no extra text)
     "steps": ["Step 1: ...", "Step 2: ..."]
   }
 }"""
+
+
+def get_free_vision_model():
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    try:
+        resp = requests.get(MODELS_URL, headers=headers, timeout=10)
+        models = resp.json().get("data", [])
+        for m in models:
+            mid = m.get("id", "")
+            if not mid.endswith(":free"):
+                continue
+            arch = m.get("architecture", {})
+            modalities = arch.get("input_modalities", arch.get("modalities", []))
+            if "image" in modalities:
+                print("Using model:", mid)
+                return mid
+    except Exception as e:
+        print("Could not fetch models:", e)
+    return "google/gemini-2.0-flash-exp:free"
+
+
+MODEL = get_free_vision_model()
 
 
 @app.route("/")
