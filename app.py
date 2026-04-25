@@ -2,16 +2,15 @@ import os
 import json
 import re
 import base64
-import requests
+import urllib.request
 from flask import Flask, request, jsonify, render_template
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
-API_KEY = os.environ["GEMINI_API_KEY"]
+with open("api_key.txt") as f:
+    API_KEY = f.read().strip()
+
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 PROMPT = """
@@ -59,22 +58,23 @@ def scan():
     image_bytes = file.read()
     image_b64 = base64.b64encode(image_bytes).decode()
 
-    payload = {
-        "contents": [
-            {
-                "parts": [
-                    {"text": PROMPT},
-                    {"inline_data": {"mime_type": file.mimetype, "data": image_b64}},
-                ]
-            }
-        ]
-    }
+    payload = json.dumps({
+        "contents": [{
+            "parts": [
+                {"text": PROMPT},
+                {"inline_data": {"mime_type": file.mimetype, "data": image_b64}}
+            ]
+        }]
+    }).encode()
 
-    resp = requests.post(GEMINI_URL, json=payload, timeout=60)
-    if not resp.ok:
-        return jsonify({"error": f"Gemini API error: {resp.status_code}"}), 500
+    req = urllib.request.Request(GEMINI_URL, data=payload, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     json_match = re.search(r"\{.*\}", text, re.DOTALL)
     if not json_match:
