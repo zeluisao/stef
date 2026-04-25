@@ -12,7 +12,7 @@ with open("api_key.txt", encoding="utf-8-sig") as f:
     API_KEY = f.read().strip()
 print("Using API key:", API_KEY[:8], "...")
 
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={API_KEY}"
 
 PROMPT = """
 Look at this fridge photo carefully.
