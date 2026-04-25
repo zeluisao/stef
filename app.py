@@ -14,56 +14,84 @@ with open("api_key.txt", encoding="utf-8-sig") as f:
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODELS_URL = "https://openrouter.ai/api/v1/models"
 
-PROMPT = """Look at this fridge photo carefully.
+RECIPE_PROMPT = """You are a helpful cooking assistant.
 
-1. List every food item and ingredient you can see.
-2. Using ONLY those ingredients, suggest one recipe each for breakfast, lunch, and dinner with clear step-by-step cooking instructions.
+I have these ingredients available: {ingredients}
+
+Using ONLY these ingredients, suggest one recipe each for breakfast, lunch, and dinner with clear step-by-step cooking instructions.
 
 Respond with ONLY valid JSON in exactly this format (no markdown, no extra text):
-{
-  "ingredients": ["item1", "item2"],
-  "breakfast": {
+{{
+  "breakfast": {{
     "name": "Recipe Name",
     "ingredients_used": ["item1", "item2"],
     "steps": ["Step 1: ...", "Step 2: ..."]
-  },
-  "lunch": {
+  }},
+  "lunch": {{
     "name": "Recipe Name",
     "ingredients_used": ["item1", "item2"],
     "steps": ["Step 1: ...", "Step 2: ..."]
-  },
-  "dinner": {
+  }},
+  "dinner": {{
     "name": "Recipe Name",
     "ingredients_used": ["item1", "item2"],
     "steps": ["Step 1: ...", "Step 2: ..."]
-  }
-}"""
+  }}
+}}"""
 
 
-SKIP_KEYWORDS = ["ocr", "embed", "instruct-embed", "whisper", "tts", "rerank"]
-
-def get_free_vision_model():
+def fetch_models():
     headers = {"Authorization": f"Bearer {API_KEY}"}
-    try:
-        resp = requests.get(MODELS_URL, headers=headers, timeout=10)
-        models = resp.json().get("data", [])
-        for m in models:
-            mid = m.get("id", "")
-            if not mid.endswith(":free"):
-                continue
-            if any(kw in mid.lower() for kw in SKIP_KEYWORDS):
-                continue
-            arch = m.get("architecture", {})
-            modalities = arch.get("input_modalities", arch.get("modalities", []))
-            if "image" in modalities:
-                print("Using model:", mid)
-                return mid
-    except Exception as e:
-        print("Could not fetch models:", e)
-    return "google/gemini-2.0-flash-exp:free"
+    resp = requests.get(MODELS_URL, headers=headers, timeout=10)
+    return resp.json().get("data", [])
 
 
-MODEL = get_free_vision_model()
+def find_vision_model(models):
+    for m in models:
+        mid = m.get("id", "")
+        if not mid.endswith(":free"):
+            continue
+        arch = m.get("architecture", {})
+        modalities = arch.get("input_modalities", arch.get("modalities", []))
+        if "image" in modalities:
+            print("Vision model:", mid)
+            return mid
+    return None
+
+
+def find_text_model(models):
+    skip = ["ocr", "embed", "whisper", "tts", "rerank", "vision"]
+    for m in models:
+        mid = m.get("id", "")
+        if not mid.endswith(":free"):
+            continue
+        if any(kw in mid.lower() for kw in skip):
+            continue
+        arch = m.get("architecture", {})
+        modalities = arch.get("output_modalities", arch.get("modalities", []))
+        if "text" in modalities or not modalities:
+            print("Text model:", mid)
+            return mid
+    return None
+
+
+try:
+    all_models = fetch_models()
+    VISION_MODEL = find_vision_model(all_models)
+    TEXT_MODEL = find_text_model(all_models)
+    print(f"Vision: {VISION_MODEL} | Text: {TEXT_MODEL}")
+except Exception as e:
+    print("Could not fetch models:", e)
+    VISION_MODEL = None
+    TEXT_MODEL = None
+
+
+def call_model(model, messages):
+    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    payload = {"model": model, "messages": messages}
+    resp = requests.post(OPENROUTER_URL, json=payload, headers=headers, timeout=60)
+    print("Status:", resp.status_code, "| Response:", resp.text[:300])
+    return resp.json()
 
 
 @app.route("/")
@@ -80,50 +108,52 @@ def scan():
     if file.filename == "":
         return jsonify({"error": "No file selected"}), 400
 
+    if not VISION_MODEL or not TEXT_MODEL:
+        return jsonify({"error": "Could not find available free models"}), 500
+
     image_bytes = file.read()
     image_b64 = base64.b64encode(image_bytes).decode()
     data_url = f"data:{file.mimetype};base64,{image_b64}"
 
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": PROMPT},
-                    {"type": "image_url", "image_url": {"url": data_url}}
-                ]
-            }
-        ]
-    }
+    # Step 1: use vision model to identify ingredients
+    vision_data = call_model(VISION_MODEL, [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "List every food item and ingredient you can see in this fridge photo. Return only a plain comma-separated list of ingredients, nothing else."},
+                {"type": "image_url", "image_url": {"url": data_url}}
+            ]
+        }
+    ])
 
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
+    if "choices" not in vision_data:
+        return jsonify({"error": f"Vision model error: {vision_data}"}), 500
 
-    try:
-        resp = requests.post(OPENROUTER_URL, json=payload, headers=headers, timeout=60)
-        print("Status:", resp.status_code)
-        print("Response:", resp.text[:500])
-        data = resp.json()
-    except Exception as e:
-        print("Error:", e)
-        return jsonify({"error": str(e)}), 500
+    ingredients_text = vision_data["choices"][0]["message"]["content"].strip()
+    print("Ingredients found:", ingredients_text)
 
-    if "choices" not in data:
-        return jsonify({"error": str(data)}), 500
+    # Step 2: use text model to generate recipes
+    recipe_data = call_model(TEXT_MODEL, [
+        {
+            "role": "user",
+            "content": RECIPE_PROMPT.format(ingredients=ingredients_text)
+        }
+    ])
 
-    text = data["choices"][0]["message"]["content"].strip()
+    if "choices" not in recipe_data:
+        return jsonify({"error": f"Recipe model error: {recipe_data}"}), 500
+
+    text = recipe_data["choices"][0]["message"]["content"].strip()
 
     json_match = re.search(r"\{.*\}", text, re.DOTALL)
     if not json_match:
-        return jsonify({"error": "Could not parse AI response"}), 500
+        return jsonify({"error": "Could not parse recipe response"}), 500
 
     try:
         result = json.loads(json_match.group())
+        result["ingredients"] = [i.strip() for i in ingredients_text.split(",") if i.strip()]
     except json.JSONDecodeError:
-        return jsonify({"error": "Invalid JSON from AI"}), 500
+        return jsonify({"error": "Invalid JSON from recipe model"}), 500
 
     return jsonify(result)
 
