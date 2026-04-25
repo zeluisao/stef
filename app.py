@@ -40,6 +40,8 @@ Respond with ONLY valid JSON in exactly this format (no markdown, no extra text)
 }"""
 
 
+SKIP_KEYWORDS = ["ocr", "embed", "instruct-embed", "whisper", "tts", "rerank"]
+
 def get_free_vision_model():
     headers = {"Authorization": f"Bearer {API_KEY}"}
     try:
@@ -48,6 +50,8 @@ def get_free_vision_model():
         for m in models:
             mid = m.get("id", "")
             if not mid.endswith(":free"):
+                continue
+            if any(kw in mid.lower() for kw in SKIP_KEYWORDS):
                 continue
             arch = m.get("architecture", {})
             modalities = arch.get("input_modalities", arch.get("modalities", []))
