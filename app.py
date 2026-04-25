@@ -1,17 +1,18 @@
 import os
 import json
 import re
+import base64
+import requests
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
-import google.generativeai as genai
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-model = genai.GenerativeModel("gemini-1.5-flash")
+API_KEY = os.environ["GEMINI_API_KEY"]
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 PROMPT = """
 Look at this fridge photo carefully.
@@ -56,10 +57,24 @@ def scan():
         return jsonify({"error": "No file selected"}), 400
 
     image_bytes = file.read()
-    image_part = {"mime_type": file.mimetype, "data": image_bytes}
+    image_b64 = base64.b64encode(image_bytes).decode()
 
-    response = model.generate_content([PROMPT, image_part])
-    text = response.text.strip()
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": PROMPT},
+                    {"inline_data": {"mime_type": file.mimetype, "data": image_b64}},
+                ]
+            }
+        ]
+    }
+
+    resp = requests.post(GEMINI_URL, json=payload, timeout=60)
+    if not resp.ok:
+        return jsonify({"error": f"Gemini API error: {resp.status_code}"}), 500
+
+    text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     json_match = re.search(r"\{.*\}", text, re.DOTALL)
     if not json_match:
