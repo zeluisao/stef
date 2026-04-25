@@ -10,12 +10,11 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
 with open("api_key.txt", encoding="utf-8-sig") as f:
     API_KEY = f.read().strip()
-print("Using API key:", API_KEY[:8], "...")
 
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={API_KEY}"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+MODEL = "meta-llama/llama-4-maverick:free"
 
-PROMPT = """
-Look at this fridge photo carefully.
+PROMPT = """Look at this fridge photo carefully.
 
 1. List every food item and ingredient you can see.
 2. Using ONLY those ingredients, suggest one recipe each for breakfast, lunch, and dinner with clear step-by-step cooking instructions.
@@ -38,8 +37,7 @@ Respond with ONLY valid JSON in exactly this format (no markdown, no extra text)
     "ingredients_used": ["item1", "item2"],
     "steps": ["Step 1: ...", "Step 2: ..."]
   }
-}
-"""
+}"""
 
 
 @app.route("/")
@@ -58,30 +56,39 @@ def scan():
 
     image_bytes = file.read()
     image_b64 = base64.b64encode(image_bytes).decode()
+    data_url = f"data:{file.mimetype};base64,{image_b64}"
 
     payload = {
-        "contents": [{
-            "parts": [
-                {"text": PROMPT},
-                {"inline_data": {"mime_type": file.mimetype, "data": image_b64}}
-            ]
-        }]
+        "model": MODEL,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": PROMPT},
+                    {"type": "image_url", "image_url": {"url": data_url}}
+                ]
+            }
+        ]
+    }
+
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
     }
 
     try:
-        resp = requests.post(GEMINI_URL, json=payload, timeout=60)
-        print("Gemini status:", resp.status_code)
-        print("Gemini response:", resp.text[:500])
+        resp = requests.post(OPENROUTER_URL, json=payload, headers=headers, timeout=60)
+        print("Status:", resp.status_code)
+        print("Response:", resp.text[:500])
         data = resp.json()
     except Exception as e:
-        print("Request error:", e)
+        print("Error:", e)
         return jsonify({"error": str(e)}), 500
 
-    if "candidates" not in data:
-        print("Unexpected response:", data)
+    if "choices" not in data:
         return jsonify({"error": str(data)}), 500
 
-    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    text = data["choices"][0]["message"]["content"].strip()
 
     json_match = re.search(r"\{.*\}", text, re.DOTALL)
     if not json_match:
