@@ -1,11 +1,9 @@
 import os
-import io
 import json
 import re
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 import google.generativeai as genai
-from PIL import Image
 
 load_dotenv()
 
@@ -58,9 +56,9 @@ def scan():
         return jsonify({"error": "No file selected"}), 400
 
     image_bytes = file.read()
-    image = Image.open(io.BytesIO(image_bytes))
+    image_part = {"mime_type": file.mimetype, "data": image_bytes}
 
-    response = model.generate_content([PROMPT, image])
+    response = model.generate_content([PROMPT, image_part])
     text = response.text.strip()
 
     json_match = re.search(r"\{.*\}", text, re.DOTALL)
