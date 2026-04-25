@@ -2,7 +2,7 @@ import os
 import json
 import re
 import base64
-import urllib.request
+import requests
 from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
@@ -58,19 +58,18 @@ def scan():
     image_bytes = file.read()
     image_b64 = base64.b64encode(image_bytes).decode()
 
-    payload = json.dumps({
+    payload = {
         "contents": [{
             "parts": [
                 {"text": PROMPT},
                 {"inline_data": {"mime_type": file.mimetype, "data": image_b64}}
             ]
         }]
-    }).encode()
+    }
 
-    req = urllib.request.Request(GEMINI_URL, data=payload, headers={"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read())
+        resp = requests.post(GEMINI_URL, json=payload, timeout=60)
+        data = resp.json()
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
