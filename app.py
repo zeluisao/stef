@@ -12,7 +12,7 @@ with open("api_key.txt", encoding="utf-8-sig") as f:
     API_KEY = f.read().strip()
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "qwen/qwen2.5-vl-72b-instruct:free"
+MODEL = "google/gemini-2.0-flash-exp:free"
 
 PROMPT = """Look at this fridge photo carefully.
 
