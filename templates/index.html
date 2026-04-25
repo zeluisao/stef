@@ -9,21 +9,33 @@
 <body>
   <header>
     <h1>🍽️ FridgeCook</h1>
-    <p>Take a photo of your fridge and get breakfast, lunch &amp; dinner ideas</p>
+    <p>Upload up to 5 fridge photos and get a recipe for any meal</p>
   </header>
 
   <main>
     <section class="upload-section">
+
       <div class="drop-zone" id="dropZone">
-        <input type="file" id="fileInput" accept="image/*" hidden />
+        <input type="file" id="fileInput" accept="image/*" multiple hidden />
         <div class="drop-content" id="dropContent">
           <div class="camera-icon">📷</div>
-          <p>Click or drag a fridge photo here</p>
-          <span>Supports JPG, PNG, WEBP</span>
+          <p>Click or drag fridge photos here</p>
+          <span>Up to 5 photos · JPG, PNG, WEBP</span>
         </div>
-        <img id="preview" class="preview hidden" alt="Fridge preview" />
       </div>
-      <button id="scanBtn" class="scan-btn" disabled>Scan My Fridge</button>
+
+      <div class="thumbnails" id="thumbnails"></div>
+
+      <div class="meal-selector">
+        <p>What are you making?</p>
+        <div class="meal-buttons">
+          <button class="meal-btn active" data-meal="breakfast">🍳 Breakfast</button>
+          <button class="meal-btn" data-meal="lunch">🥗 Lunch</button>
+          <button class="meal-btn" data-meal="dessert">🍰 Dessert</button>
+        </div>
+      </div>
+
+      <button id="scanBtn" class="scan-btn" disabled>Get Recipe</button>
     </section>
 
     <section class="results hidden" id="results">
@@ -32,39 +44,19 @@
         <ul id="ingredientsList"></ul>
       </div>
 
-      <div class="recipes-grid">
-        <div class="recipe-card" id="breakfastCard">
-          <div class="meal-label breakfast">Breakfast</div>
-          <h3 id="breakfastName"></h3>
-          <h4>What you'll need:</h4>
-          <ul id="breakfastIngredients"></ul>
-          <h4>How to make it:</h4>
-          <ol id="breakfastSteps"></ol>
-        </div>
-
-        <div class="recipe-card" id="lunchCard">
-          <div class="meal-label lunch">Lunch</div>
-          <h3 id="lunchName"></h3>
-          <h4>What you'll need:</h4>
-          <ul id="lunchIngredients"></ul>
-          <h4>How to make it:</h4>
-          <ol id="lunchSteps"></ol>
-        </div>
-
-        <div class="recipe-card" id="dinnerCard">
-          <div class="meal-label dinner">Dinner</div>
-          <h3 id="dinnerName"></h3>
-          <h4>What you'll need:</h4>
-          <ul id="dinnerIngredients"></ul>
-          <h4>How to make it:</h4>
-          <ol id="dinnerSteps"></ol>
-        </div>
+      <div class="recipe-card" id="recipeCard">
+        <div class="meal-label" id="mealLabel"></div>
+        <h3 id="recipeName"></h3>
+        <h4>What you'll need:</h4>
+        <ul id="recipeIngredients"></ul>
+        <h4>How to make it:</h4>
+        <ol id="recipeSteps"></ol>
       </div>
     </section>
 
     <div class="loader hidden" id="loader">
       <div class="spinner"></div>
-      <p>Scanning your fridge...</p>
+      <p id="loaderText">Scanning your fridge...</p>
     </div>
 
     <div class="error hidden" id="errorBox"></div>

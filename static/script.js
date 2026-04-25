@@ -1,13 +1,16 @@
 const dropZone = document.getElementById("dropZone");
 const fileInput = document.getElementById("fileInput");
 const dropContent = document.getElementById("dropContent");
-const preview = document.getElementById("preview");
+const thumbnails = document.getElementById("thumbnails");
 const scanBtn = document.getElementById("scanBtn");
 const results = document.getElementById("results");
 const loader = document.getElementById("loader");
+const loaderText = document.getElementById("loaderText");
 const errorBox = document.getElementById("errorBox");
 
-let selectedFile = null;
+const MAX_FILES = 5;
+let selectedFiles = [];
+let selectedMeal = "breakfast";
 
 dropZone.addEventListener("click", () => fileInput.click());
 
@@ -21,41 +24,92 @@ dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover
 dropZone.addEventListener("drop", (e) => {
   e.preventDefault();
   dropZone.classList.remove("dragover");
-  const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith("image/")) loadFile(file);
+  addFiles(e.dataTransfer.files);
 });
 
 fileInput.addEventListener("change", () => {
-  if (fileInput.files[0]) loadFile(fileInput.files[0]);
+  addFiles(fileInput.files);
+  fileInput.value = "";
 });
 
-function loadFile(file) {
-  selectedFile = file;
+document.querySelectorAll(".meal-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".meal-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    selectedMeal = btn.dataset.meal;
+  });
+});
+
+function addFiles(files) {
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) continue;
+    if (selectedFiles.length >= MAX_FILES) break;
+    selectedFiles.push(file);
+    addThumbnail(file, selectedFiles.length - 1);
+  }
+  updateDropZone();
+  updateScanBtn();
+}
+
+function addThumbnail(file, index) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "thumb-wrapper";
+  wrapper.dataset.index = index;
+
+  const img = document.createElement("img");
   const reader = new FileReader();
-  reader.onload = (e) => {
-    preview.src = e.target.result;
-    preview.classList.remove("hidden");
-    dropContent.classList.add("hidden");
-  };
+  reader.onload = (e) => (img.src = e.target.result);
   reader.readAsDataURL(file);
-  scanBtn.disabled = false;
-  results.classList.add("hidden");
-  errorBox.classList.add("hidden");
+
+  const btn = document.createElement("button");
+  btn.className = "thumb-remove";
+  btn.textContent = "×";
+  btn.addEventListener("click", () => removeFile(index));
+
+  wrapper.appendChild(img);
+  wrapper.appendChild(btn);
+  thumbnails.appendChild(wrapper);
+}
+
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  thumbnails.innerHTML = "";
+  selectedFiles.forEach((f, i) => addThumbnail(f, i));
+  updateDropZone();
+  updateScanBtn();
+}
+
+function updateDropZone() {
+  if (selectedFiles.length >= MAX_FILES) {
+    dropContent.querySelector("p").textContent = "Maximum 5 photos reached";
+    dropContent.querySelector("span").textContent = "Remove a photo to add another";
+  } else {
+    dropContent.querySelector("p").textContent = "Click or drag fridge photos here";
+    dropContent.querySelector("span").textContent = `Up to ${MAX_FILES} photos · JPG, PNG, WEBP (${selectedFiles.length}/${MAX_FILES} added)`;
+  }
+}
+
+function updateScanBtn() {
+  scanBtn.disabled = selectedFiles.length === 0;
 }
 
 scanBtn.addEventListener("click", async () => {
-  if (!selectedFile) return;
+  if (selectedFiles.length === 0) return;
 
   loader.classList.remove("hidden");
+  loaderText.textContent = "Scanning your fridge...";
   results.classList.add("hidden");
   errorBox.classList.add("hidden");
   scanBtn.disabled = true;
 
   const formData = new FormData();
-  formData.append("image", selectedFile);
+  selectedFiles.forEach((f) => formData.append("image", f));
+  formData.append("meal", selectedMeal);
 
   try {
+    loaderText.textContent = "Finding ingredients...";
     const res = await fetch("/scan", { method: "POST", body: formData });
+    loaderText.textContent = "Generating recipe...";
     const data = await res.json();
 
     if (data.error) {
@@ -81,33 +135,31 @@ function renderResults(data) {
     ingredientsList.appendChild(li);
   });
 
-  renderMeal("breakfast", data.breakfast);
-  renderMeal("lunch", data.lunch);
-  renderMeal("dinner", data.dinner);
+  const recipe = data.recipe;
+  const label = document.getElementById("mealLabel");
+  label.textContent = selectedMeal.charAt(0).toUpperCase() + selectedMeal.slice(1);
+  label.className = `meal-label ${selectedMeal}`;
 
-  results.classList.remove("hidden");
-  results.scrollIntoView({ behavior: "smooth" });
-}
+  document.getElementById("recipeName").textContent = recipe.name || "";
 
-function renderMeal(meal, info) {
-  if (!info) return;
-  document.getElementById(`${meal}Name`).textContent = info.name || "";
-
-  const ingList = document.getElementById(`${meal}Ingredients`);
+  const ingList = document.getElementById("recipeIngredients");
   ingList.innerHTML = "";
-  (info.ingredients_used || []).forEach((i) => {
+  (recipe.ingredients_used || []).forEach((i) => {
     const li = document.createElement("li");
     li.textContent = i;
     ingList.appendChild(li);
   });
 
-  const stepsList = document.getElementById(`${meal}Steps`);
+  const stepsList = document.getElementById("recipeSteps");
   stepsList.innerHTML = "";
-  (info.steps || []).forEach((step) => {
+  (recipe.steps || []).forEach((step) => {
     const li = document.createElement("li");
     li.textContent = step.replace(/^Step \d+:\s*/i, "");
     stepsList.appendChild(li);
   });
+
+  results.classList.remove("hidden");
+  results.scrollIntoView({ behavior: "smooth" });
 }
 
 function showError(msg) {

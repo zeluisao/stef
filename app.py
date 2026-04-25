@@ -18,25 +18,13 @@ RECIPE_PROMPT = """You are a helpful cooking assistant.
 
 I have these ingredients available: {ingredients}
 
-Using ONLY these ingredients, suggest one recipe each for breakfast, lunch, and dinner with clear step-by-step cooking instructions.
+Using ONLY these ingredients, suggest one {meal} recipe with clear step-by-step cooking instructions.
 
 Respond with ONLY valid JSON in exactly this format (no markdown, no extra text):
 {{
-  "breakfast": {{
-    "name": "Recipe Name",
-    "ingredients_used": ["item1", "item2"],
-    "steps": ["Step 1: ...", "Step 2: ..."]
-  }},
-  "lunch": {{
-    "name": "Recipe Name",
-    "ingredients_used": ["item1", "item2"],
-    "steps": ["Step 1: ...", "Step 2: ..."]
-  }},
-  "dinner": {{
-    "name": "Recipe Name",
-    "ingredients_used": ["item1", "item2"],
-    "steps": ["Step 1: ...", "Step 2: ..."]
-  }}
+  "name": "Recipe Name",
+  "ingredients_used": ["item1", "item2"],
+  "steps": ["Step 1: ...", "Step 2: ..."]
 }}"""
 
 
@@ -101,29 +89,29 @@ def index():
 
 @app.route("/scan", methods=["POST"])
 def scan():
-    if "image" not in request.files:
+    files = request.files.getlist("image")
+    if not files or all(f.filename == "" for f in files):
         return jsonify({"error": "No image uploaded"}), 400
 
-    file = request.files["image"]
-    if file.filename == "":
-        return jsonify({"error": "No file selected"}), 400
+    meal = request.form.get("meal", "breakfast")
 
     if not VISION_MODEL or not TEXT_MODEL:
         return jsonify({"error": "Could not find available free models"}), 500
 
-    image_bytes = file.read()
-    image_b64 = base64.b64encode(image_bytes).decode()
-    data_url = f"data:{file.mimetype};base64,{image_b64}"
+    # Build image parts for all uploaded photos
+    image_parts = []
+    for file in files[:5]:
+        image_bytes = file.read()
+        image_b64 = base64.b64encode(image_bytes).decode()
+        data_url = f"data:{file.mimetype};base64,{image_b64}"
+        image_parts.append({"type": "image_url", "image_url": {"url": data_url}})
 
-    # Step 1: use vision model to identify ingredients
+    # Step 1: use vision model to identify ingredients across all images
+    vision_content = [{"type": "text", "text": "List every food item and ingredient you can see in these fridge photos. Return only a plain comma-separated list of ingredients, nothing else."}]
+    vision_content.extend(image_parts)
+
     vision_data = call_model(VISION_MODEL, [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": "List every food item and ingredient you can see in this fridge photo. Return only a plain comma-separated list of ingredients, nothing else."},
-                {"type": "image_url", "image_url": {"url": data_url}}
-            ]
-        }
+        {"role": "user", "content": vision_content}
     ])
 
     if "choices" not in vision_data:
@@ -132,11 +120,11 @@ def scan():
     ingredients_text = vision_data["choices"][0]["message"]["content"].strip()
     print("Ingredients found:", ingredients_text)
 
-    # Step 2: use text model to generate recipes
+    # Step 2: use text model to generate recipe for chosen meal
     recipe_data = call_model(TEXT_MODEL, [
         {
             "role": "user",
-            "content": RECIPE_PROMPT.format(ingredients=ingredients_text)
+            "content": RECIPE_PROMPT.format(ingredients=ingredients_text, meal=meal)
         }
     ])
 
@@ -150,8 +138,11 @@ def scan():
         return jsonify({"error": "Could not parse recipe response"}), 500
 
     try:
-        result = json.loads(json_match.group())
-        result["ingredients"] = [i.strip() for i in ingredients_text.split(",") if i.strip()]
+        recipe = json.loads(json_match.group())
+        result = {
+            "ingredients": [i.strip() for i in ingredients_text.split(",") if i.strip()],
+            "recipe": recipe
+        }
     except json.JSONDecodeError:
         return jsonify({"error": "Invalid JSON from recipe model"}), 500
 
