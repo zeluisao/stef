@@ -64,8 +64,8 @@ scanBtn.addEventListener("click", async () => {
     }
 
     renderResults(data);
-  } catch {
-    showError("Something went wrong. Please try again.");
+  } catch (err) {
+    showError("Something went wrong: " + err.message);
   } finally {
     loader.classList.add("hidden");
     scanBtn.disabled = false;

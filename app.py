@@ -69,9 +69,16 @@ def scan():
 
     try:
         resp = requests.post(GEMINI_URL, json=payload, timeout=60)
+        print("Gemini status:", resp.status_code)
+        print("Gemini response:", resp.text[:500])
         data = resp.json()
     except Exception as e:
+        print("Request error:", e)
         return jsonify({"error": str(e)}), 500
+
+    if "candidates" not in data:
+        print("Unexpected response:", data)
+        return jsonify({"error": str(data)}), 500
 
     text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
