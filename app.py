@@ -8,8 +8,9 @@ from flask import Flask, request, jsonify, render_template
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
-with open("api_key.txt") as f:
+with open("api_key.txt", encoding="utf-8-sig") as f:
     API_KEY = f.read().strip()
+print("Using API key:", API_KEY[:8], "...")
 
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
