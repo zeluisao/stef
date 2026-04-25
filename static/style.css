@@ -18,15 +18,8 @@ header {
   padding: 2.5rem 1rem;
 }
 
-header h1 {
-  font-size: 2.4rem;
-  margin-bottom: 0.5rem;
-}
-
-header p {
-  font-size: 1.05rem;
-  opacity: 0.9;
-}
+header h1 { font-size: 2.4rem; margin-bottom: 0.5rem; }
+header p  { font-size: 1.05rem; opacity: 0.9; }
 
 main {
   max-width: 800px;
@@ -43,7 +36,7 @@ main {
 
 .drop-zone {
   width: 100%;
-  min-height: 180px;
+  min-height: 160px;
   border: 3px dashed #c0c9e0;
   border-radius: 16px;
   background: white;
@@ -60,26 +53,10 @@ main {
   background: #f0f2ff;
 }
 
-.drop-content {
-  text-align: center;
-  pointer-events: none;
-}
-
-.camera-icon {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-}
-
-.drop-content p {
-  font-size: 1rem;
-  color: #555;
-  margin-bottom: 0.25rem;
-}
-
-.drop-content span {
-  font-size: 0.8rem;
-  color: #999;
-}
+.drop-content { text-align: center; pointer-events: none; }
+.camera-icon  { font-size: 3rem; margin-bottom: 0.5rem; }
+.drop-content p    { font-size: 1rem; color: #555; margin-bottom: 0.25rem; }
+.drop-content span { font-size: 0.8rem; color: #999; }
 
 .thumbnails {
   display: flex;
@@ -121,29 +98,22 @@ main {
   font-weight: bold;
 }
 
-.meal-selector {
-  text-align: center;
-}
-
-.meal-selector p {
-  font-size: 0.95rem;
-  color: #555;
-  margin-bottom: 0.6rem;
-}
+.meal-selector { text-align: center; }
+.meal-selector p { font-size: 0.95rem; color: #555; margin-bottom: 0.6rem; }
 
 .meal-buttons {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.5rem;
   justify-content: center;
   flex-wrap: wrap;
 }
 
 .meal-btn {
-  padding: 0.55rem 1.3rem;
+  padding: 0.5rem 1.1rem;
   border-radius: 50px;
   border: 2px solid #c0c9e0;
   background: white;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.15s;
@@ -156,9 +126,7 @@ main {
   color: white;
 }
 
-.hidden {
-  display: none !important;
-}
+.hidden { display: none !important; }
 
 .scan-btn {
   background: linear-gradient(135deg, #667eea, #764ba2);
@@ -172,28 +140,21 @@ main {
   transition: opacity 0.2s, transform 0.1s;
 }
 
-.scan-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.scan-btn:not(:disabled):hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
+.scan-btn:disabled       { opacity: 0.45; cursor: not-allowed; }
+.scan-btn:not(:disabled):hover { opacity: 0.9; transform: translateY(-1px); }
 
 .ingredients-box {
   background: white;
   border-radius: 14px;
   padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   box-shadow: 0 2px 12px rgba(0,0,0,0.07);
 }
 
 .ingredients-box h2 {
   margin-bottom: 0.75rem;
   color: #444;
-  font-size: 1.1rem;
+  font-size: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -210,13 +171,14 @@ main {
   color: #4a4aaa;
   padding: 0.3rem 0.85rem;
   border-radius: 50px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .recipe-card {
   background: white;
   border-radius: 14px;
   padding: 1.75rem;
+  margin-bottom: 1.25rem;
   box-shadow: 0 2px 12px rgba(0,0,0,0.07);
 }
 
@@ -233,14 +195,12 @@ main {
   color: #856404;
 }
 
-.meal-label.lunch    { background: #d1f5d3; color: #155724; }
-.meal-label.dessert  { background: #fce4ec; color: #880e4f; }
+.meal-label.lunch   { background: #d1f5d3; color: #155724; }
+.meal-label.dinner  { background: #d6e4ff; color: #1a3a8f; }
+.meal-label.dessert { background: #fce4ec; color: #880e4f; }
+.meal-label.snack   { background: #e8f5e9; color: #2e7d32; }
 
-.recipe-card h3 {
-  font-size: 1.4rem;
-  margin-bottom: 1rem;
-  color: #1a1a2e;
-}
+.recipe-card h3 { font-size: 1.4rem; margin-bottom: 1rem; color: #1a1a2e; }
 
 .recipe-card h4 {
   font-size: 0.82rem;
@@ -251,22 +211,89 @@ main {
 }
 
 .recipe-card ul,
-.recipe-card ol {
-  padding-left: 1.2rem;
-  margin-bottom: 1.25rem;
+.recipe-card ol { padding-left: 1.2rem; margin-bottom: 1.25rem; }
+
+.recipe-card li { font-size: 0.95rem; line-height: 1.7; color: #333; margin-bottom: 0.25rem; }
+
+/* Chat */
+.chat-section {
+  background: white;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
 }
 
-.recipe-card li {
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: #333;
-  margin-bottom: 0.25rem;
+.chat-section h2 {
+  font-size: 1rem;
+  color: #444;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.loader {
-  text-align: center;
-  padding: 3rem;
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  max-height: 340px;
+  overflow-y: auto;
 }
+
+.chat-msg {
+  max-width: 80%;
+  padding: 0.65rem 1rem;
+  border-radius: 14px;
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+
+.chat-msg.user {
+  align-self: flex-end;
+  background: #667eea;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-msg.assistant {
+  align-self: flex-start;
+  background: #f0f2ff;
+  color: #1a1a2e;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-input-row input {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border: 2px solid #c0c9e0;
+  border-radius: 50px;
+  font-size: 0.93rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-input-row input:focus { border-color: #667eea; }
+
+.chat-input-row button {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 0.65rem 1.4rem;
+  border-radius: 50px;
+  font-size: 0.93rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.chat-input-row button:hover { opacity: 0.9; }
+
+.loader { text-align: center; padding: 3rem; }
 
 .spinner {
   width: 50px;
@@ -278,9 +305,7 @@ main {
   margin: 0 auto 1rem;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .error {
   background: #fde8e8;

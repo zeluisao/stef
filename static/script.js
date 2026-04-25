@@ -1,44 +1,29 @@
-const dropZone = document.getElementById("dropZone");
-const fileInput = document.getElementById("fileInput");
-const dropContent = document.getElementById("dropContent");
-const thumbnails = document.getElementById("thumbnails");
-const scanBtn = document.getElementById("scanBtn");
-const results = document.getElementById("results");
-const loader = document.getElementById("loader");
-const loaderText = document.getElementById("loaderText");
-const errorBox = document.getElementById("errorBox");
+const dropZone     = document.getElementById("dropZone");
+const fileInput    = document.getElementById("fileInput");
+const dropContent  = document.getElementById("dropContent");
+const thumbnails   = document.getElementById("thumbnails");
+const scanBtn      = document.getElementById("scanBtn");
+const results      = document.getElementById("results");
+const loader       = document.getElementById("loader");
+const loaderText   = document.getElementById("loaderText");
+const errorBox     = document.getElementById("errorBox");
+const chatMessages = document.getElementById("chatMessages");
+const chatInput    = document.getElementById("chatInput");
+const chatSend     = document.getElementById("chatSend");
 
 const MAX_FILES = 5;
 let selectedFiles = [];
-let selectedMeal = "breakfast";
+let selectedMeal  = "breakfast";
+let currentIngredients = [];
+let chatHistory = [];
+
+// ── File upload ──────────────────────────────────────────────────────────────
 
 dropZone.addEventListener("click", () => fileInput.click());
-
-dropZone.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropZone.classList.add("dragover");
-});
-
+dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
 dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
-
-dropZone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropZone.classList.remove("dragover");
-  addFiles(e.dataTransfer.files);
-});
-
-fileInput.addEventListener("change", () => {
-  addFiles(fileInput.files);
-  fileInput.value = "";
-});
-
-document.querySelectorAll(".meal-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".meal-btn").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    selectedMeal = btn.dataset.meal;
-  });
-});
+dropZone.addEventListener("drop", (e) => { e.preventDefault(); dropZone.classList.remove("dragover"); addFiles(e.dataTransfer.files); });
+fileInput.addEventListener("change", () => { addFiles(fileInput.files); fileInput.value = ""; });
 
 function addFiles(files) {
   for (const file of files) {
@@ -93,6 +78,18 @@ function updateScanBtn() {
   scanBtn.disabled = selectedFiles.length === 0;
 }
 
+// ── Meal selector ─────────────────────────────────────────────────────────────
+
+document.querySelectorAll(".meal-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".meal-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    selectedMeal = btn.dataset.meal;
+  });
+});
+
+// ── Scan ──────────────────────────────────────────────────────────────────────
+
 scanBtn.addEventListener("click", async () => {
   if (selectedFiles.length === 0) return;
 
@@ -101,41 +98,42 @@ scanBtn.addEventListener("click", async () => {
   results.classList.add("hidden");
   errorBox.classList.add("hidden");
   scanBtn.disabled = true;
+  chatHistory = [];
+  chatMessages.innerHTML = "";
 
   const formData = new FormData();
   selectedFiles.forEach((f) => formData.append("image", f));
   formData.append("meal", selectedMeal);
 
   try {
-    loaderText.textContent = "Finding ingredients...";
-    const res = await fetch("/scan", { method: "POST", body: formData });
-    loaderText.textContent = "Generating recipe...";
+    const res  = await fetch("/scan", { method: "POST", body: formData });
     const data = await res.json();
-
-    if (data.error) {
-      showError(data.error);
-      return;
-    }
-
+    if (data.error) { showError(data.error); return; }
+    currentIngredients = data.ingredients || [];
     renderResults(data);
   } catch (err) {
     showError("Something went wrong: " + err.message);
   } finally {
     loader.classList.add("hidden");
-    scanBtn.disabled = false;
+    scanBtn.disabled = selectedFiles.length === 0;
   }
 });
 
 function renderResults(data) {
-  const ingredientsList = document.getElementById("ingredientsList");
-  ingredientsList.innerHTML = "";
-  (data.ingredients || []).forEach((item) => {
+  const list = document.getElementById("ingredientsList");
+  list.innerHTML = "";
+  currentIngredients.forEach((item) => {
     const li = document.createElement("li");
     li.textContent = item;
-    ingredientsList.appendChild(li);
+    list.appendChild(li);
   });
 
-  const recipe = data.recipe;
+  renderRecipeCard(data.recipe);
+  results.classList.remove("hidden");
+  results.scrollIntoView({ behavior: "smooth" });
+}
+
+function renderRecipeCard(recipe) {
   const label = document.getElementById("mealLabel");
   label.textContent = selectedMeal.charAt(0).toUpperCase() + selectedMeal.slice(1);
   label.className = `meal-label ${selectedMeal}`;
@@ -157,10 +155,64 @@ function renderResults(data) {
     li.textContent = step.replace(/^Step \d+:\s*/i, "");
     stepsList.appendChild(li);
   });
-
-  results.classList.remove("hidden");
-  results.scrollIntoView({ behavior: "smooth" });
 }
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+
+chatSend.addEventListener("click", sendChat);
+chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
+
+async function sendChat() {
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+
+  chatInput.value = "";
+  appendMessage("user", msg);
+  chatHistory.push({ role: "user", content: msg });
+
+  chatSend.disabled = true;
+  appendMessage("assistant", "...", "thinking");
+
+  try {
+    const res  = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg, ingredients: currentIngredients, meal: selectedMeal, history: chatHistory })
+    });
+    const data = await res.json();
+
+    removeThinking();
+
+    if (data.error) { appendMessage("assistant", "Sorry, something went wrong: " + data.error); return; }
+
+    appendMessage("assistant", data.reply);
+    chatHistory.push({ role: "assistant", content: data.reply });
+
+    if (data.recipe) renderRecipeCard(data.recipe);
+  } catch (err) {
+    removeThinking();
+    appendMessage("assistant", "Sorry, something went wrong.");
+  } finally {
+    chatSend.disabled = false;
+    chatInput.focus();
+  }
+}
+
+function appendMessage(role, text, id) {
+  const div = document.createElement("div");
+  div.className = `chat-msg ${role}`;
+  div.textContent = text;
+  if (id) div.id = id;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function removeThinking() {
+  const el = document.getElementById("thinking");
+  if (el) el.remove();
+}
+
+// ── Error ─────────────────────────────────────────────────────────────────────
 
 function showError(msg) {
   errorBox.textContent = msg;

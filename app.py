@@ -149,5 +149,45 @@ def scan():
     return jsonify(result)
 
 
+CHAT_SYSTEM = """You are a friendly cooking assistant. The user has these ingredients in their fridge: {ingredients}.
+They are looking for a {meal} recipe. Help them adjust or replace the recipe based on their requests.
+If you suggest a new or modified recipe, include it as JSON inside a <recipe> tag like this:
+<recipe>{{"name": "...", "ingredients_used": [...], "steps": [...]}}</recipe>
+Otherwise just reply conversationally."""
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    body = request.get_json()
+    message     = body.get("message", "")
+    ingredients = body.get("ingredients", [])
+    meal        = body.get("meal", "breakfast")
+    history     = body.get("history", [])
+
+    if not TEXT_MODEL:
+        return jsonify({"error": "No text model available"}), 500
+
+    system_msg = CHAT_SYSTEM.format(ingredients=", ".join(ingredients), meal=meal)
+    messages   = [{"role": "system", "content": system_msg}] + history
+
+    data = call_model(TEXT_MODEL, messages)
+
+    if "choices" not in data:
+        return jsonify({"error": str(data)}), 500
+
+    reply_text = data["choices"][0]["message"]["content"].strip()
+
+    recipe = None
+    recipe_match = re.search(r"<recipe>(.*?)</recipe>", reply_text, re.DOTALL)
+    if recipe_match:
+        try:
+            recipe = json.loads(recipe_match.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+        reply_text = re.sub(r"<recipe>.*?</recipe>", "", reply_text, flags=re.DOTALL).strip()
+
+    return jsonify({"reply": reply_text, "recipe": recipe})
+
+
 if __name__ == "__main__":
     app.run(debug=True)

@@ -14,7 +14,6 @@
 
   <main>
     <section class="upload-section">
-
       <div class="drop-zone" id="dropZone">
         <input type="file" id="fileInput" accept="image/*" multiple hidden />
         <div class="drop-content" id="dropContent">
@@ -31,12 +30,21 @@
         <div class="meal-buttons">
           <button class="meal-btn active" data-meal="breakfast">🍳 Breakfast</button>
           <button class="meal-btn" data-meal="lunch">🥗 Lunch</button>
+          <button class="meal-btn" data-meal="dinner">🍝 Dinner</button>
           <button class="meal-btn" data-meal="dessert">🍰 Dessert</button>
+          <button class="meal-btn" data-meal="snack">🍎 Snack</button>
         </div>
       </div>
 
       <button id="scanBtn" class="scan-btn" disabled>Get Recipe</button>
     </section>
+
+    <div class="loader hidden" id="loader">
+      <div class="spinner"></div>
+      <p id="loaderText">Scanning your fridge...</p>
+    </div>
+
+    <div class="error hidden" id="errorBox"></div>
 
     <section class="results hidden" id="results">
       <div class="ingredients-box">
@@ -52,14 +60,16 @@
         <h4>How to make it:</h4>
         <ol id="recipeSteps"></ol>
       </div>
+
+      <div class="chat-section">
+        <h2>Not happy with the recipe? Ask for changes</h2>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="e.g. make it vegetarian, I don't like eggs, give me something quicker..." />
+          <button id="chatSend">Send</button>
+        </div>
+      </div>
     </section>
-
-    <div class="loader hidden" id="loader">
-      <div class="spinner"></div>
-      <p id="loaderText">Scanning your fridge...</p>
-    </div>
-
-    <div class="error hidden" id="errorBox"></div>
   </main>
 
   <script src="/static/script.js"></script>
