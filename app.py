@@ -149,6 +149,33 @@ def scan():
     return jsonify(result)
 
 
+@app.route("/recipe", methods=["POST"])
+def recipe():
+    body        = request.get_json()
+    ingredients = body.get("ingredients", [])
+    meal        = body.get("meal", "breakfast")
+
+    if not TEXT_MODEL:
+        return jsonify({"error": "No text model available"}), 500
+
+    recipe_data = call_model(TEXT_MODEL, [
+        {"role": "user", "content": RECIPE_PROMPT.format(ingredients=", ".join(ingredients), meal=meal)}
+    ])
+
+    if "choices" not in recipe_data:
+        return jsonify({"error": str(recipe_data)}), 500
+
+    text = recipe_data["choices"][0]["message"]["content"].strip()
+    json_match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not json_match:
+        return jsonify({"error": "Could not parse recipe"}), 500
+
+    try:
+        return jsonify({"recipe": json.loads(json_match.group())})
+    except json.JSONDecodeError:
+        return jsonify({"error": "Invalid JSON from model"}), 500
+
+
 CHAT_SYSTEM = """You are a friendly cooking assistant. The user has these ingredients in their fridge: {ingredients}.
 They are looking for a {meal} recipe. Help them adjust or replace the recipe based on their requests.
 If you suggest a new or modified recipe, include it as JSON inside a <recipe> tag like this:

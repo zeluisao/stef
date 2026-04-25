@@ -82,9 +82,11 @@ function updateScanBtn() {
 
 document.querySelectorAll(".meal-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
+    if (btn.classList.contains("active")) return;
     document.querySelectorAll(".meal-btn").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     selectedMeal = btn.dataset.meal;
+    if (currentIngredients.length > 0) fetchRecipe();
   });
 });
 
@@ -118,6 +120,30 @@ scanBtn.addEventListener("click", async () => {
     scanBtn.disabled = selectedFiles.length === 0;
   }
 });
+
+async function fetchRecipe() {
+  loader.classList.remove("hidden");
+  loaderText.textContent = "Getting " + selectedMeal + " recipe...";
+  errorBox.classList.add("hidden");
+  chatHistory = [];
+  chatMessages.innerHTML = "";
+
+  try {
+    const res  = await fetch("/recipe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ingredients: currentIngredients, meal: selectedMeal })
+    });
+    const data = await res.json();
+    if (data.error) { showError(data.error); return; }
+    renderRecipeCard(data.recipe);
+    document.getElementById("recipeCard").scrollIntoView({ behavior: "smooth" });
+  } catch (err) {
+    showError("Something went wrong: " + err.message);
+  } finally {
+    loader.classList.add("hidden");
+  }
+}
 
 function renderResults(data) {
   const list = document.getElementById("ingredientsList");
