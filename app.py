@@ -8,8 +8,11 @@ from flask import Flask, request, jsonify, render_template
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
-with open("api_key.txt", encoding="utf-8-sig") as f:
-    API_KEY = f.read().strip()
+if os.path.exists("api_key.txt"):
+    with open("api_key.txt", encoding="utf-8-sig") as f:
+        API_KEY = f.read().strip()
+else:
+    API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODELS_URL = "https://openrouter.ai/api/v1/models"
@@ -217,4 +220,4 @@ def chat():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=False)
