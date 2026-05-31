@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIFA Blind Bag Collector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #0a1628 0%, #1a3a6b 50%, #0d2044 100%);
+      min-height: 100vh;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 28px 16px 12px;
+    }
+    header h1 {
+      font-size: clamp(2rem, 6vw, 3.6rem);
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffd700, #ffaa00, #ffd700);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      filter: drop-shadow(0 2px 8px rgba(255,215,0,0.4));
+    }
+    header p {
+      color: #aac4f0;
+      font-size: 1.05rem;
+      margin-top: 6px;
+    }
+
+    /* ── Counter bar ── */
+    #counter-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      padding: 14px 20px;
+      background: rgba(255,255,255,0.06);
+      border-top: 1px solid rgba(255,215,0,0.2);
+      border-bottom: 1px solid rgba(255,215,0,0.2);
+    }
+    #counter-text {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #ffd700;
+    }
+    #progress-bar-wrap {
+      width: min(300px, 50vw);
+      height: 12px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #00e676, #ffd700);
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(.4,2,.6,1);
+      width: 0%;
+    }
+
+    /* ── Main stage ── */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    /* ── Open bag section ── */
+    #bag-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 36px;
+    }
+
+    #open-btn {
+      position: relative;
+      padding: 20px 52px;
+      font-size: 1.5rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border: none;
+      border-radius: 60px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+      color: #0a1628;
+      box-shadow: 0 0 30px rgba(255,180,0,0.5), 0 6px 20px rgba(0,0,0,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+      overflow: hidden;
+    }
+    #open-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 60%);
+      border-radius: inherit;
+    }
+    #open-btn:hover { transform: scale(1.05); box-shadow: 0 0 50px rgba(255,180,0,0.7), 0 8px 28px rgba(0,0,0,0.5); }
+    #open-btn:active { transform: scale(0.97); }
+    #open-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── Bag animation area ── */
+    #bag-stage {
+      width: 180px;
+      height: 200px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .bag-emoji {
+      font-size: 7rem;
+      line-height: 1;
+      transition: transform 0.3s;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+      user-select: none;
+    }
+
+    /* ── Reveal overlay ── */
+    #reveal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #reveal-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+    #reveal-card {
+      background: linear-gradient(145deg, #1a3a6b, #0d2044);
+      border: 3px solid #ffd700;
+      border-radius: 24px;
+      padding: 36px 44px;
+      text-align: center;
+      max-width: 340px;
+      width: 90vw;
+      position: relative;
+      box-shadow: 0 0 60px rgba(255,215,0,0.35), 0 20px 50px rgba(0,0,0,0.7);
+      transform: scale(0.5) rotate(-8deg);
+      transition: transform 0.45s cubic-bezier(.2,1.4,.4,1);
+    }
+    #reveal-overlay.visible #reveal-card {
+      transform: scale(1) rotate(0deg);
+    }
+
+    .reveal-emoji { font-size: 5.5rem; line-height: 1; margin-bottom: 8px; animation: bounce-in 0.6s 0.3s both; }
+    .reveal-name { font-size: 1.6rem; font-weight: 900; color: #ffd700; margin-bottom: 4px; }
+    .reveal-meta { font-size: 1rem; color: #aac4f0; margin-bottom: 10px; }
+    .reveal-stars { font-size: 1.4rem; margin-bottom: 12px; }
+    .reveal-flag { font-size: 2rem; }
+
+    .duplicate-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #ff4444, #cc0000);
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-top: 6px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .new-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #00e676, #00aa44);
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-top: 6px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    #dismiss-btn {
+      margin-top: 18px;
+      padding: 10px 32px;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ffd700, #ff8c00);
+      color: #0a1628;
+      transition: transform 0.15s;
+    }
+    #dismiss-btn:hover { transform: scale(1.07); }
+
+    /* ── Sparkle burst ── */
+    .sparkle {
+      position: absolute;
+      pointer-events: none;
+      font-size: 1.4rem;
+      animation: sparkle-fly 0.9s ease-out forwards;
+    }
+    @keyframes sparkle-fly {
+      0%   { opacity: 1; transform: translate(0,0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.2); }
+    }
+
+    @keyframes bounce-in {
+      0%   { transform: scale(0.3); opacity: 0; }
+      60%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes bag-shake {
+      0%,100% { transform: rotate(0deg); }
+      20%     { transform: rotate(-12deg) scale(1.1); }
+      40%     { transform: rotate(12deg) scale(1.15); }
+      60%     { transform: rotate(-8deg) scale(1.1); }
+      80%     { transform: rotate(8deg) scale(1.05); }
+    }
+
+    /* ── Collection grid ── */
+    #collection-section h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #ffd700;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    #collection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 14px;
+    }
+
+    .player-card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+      border: 2px solid rgba(255,215,0,0.18);
+      border-radius: 16px;
+      padding: 14px 10px 12px;
+      text-align: center;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+    .player-card.collected {
+      border-color: rgba(255,215,0,0.55);
+      background: linear-gradient(145deg, rgba(255,215,0,0.10), rgba(255,140,0,0.06));
+      box-shadow: 0 0 16px rgba(255,215,0,0.12);
+    }
+    .player-card.collected:hover {
+      transform: translateY(-4px) scale(1.03);
+      border-color: #ffd700;
+      box-shadow: 0 8px 24px rgba(255,215,0,0.25);
+    }
+    .player-card.collected.duplicate {
+      border-color: rgba(100,149,237,0.6);
+    }
+
+    .card-emoji {
+      font-size: 2.8rem;
+      line-height: 1;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .card-emoji.mystery {
+      filter: brightness(0) invert(0.15) sepia(0) saturate(0) contrast(0.4);
+      font-size: 2.8rem;
+    }
+
+    .card-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #ffd700;
+      line-height: 1.2;
+      margin-bottom: 3px;
+    }
+    .card-name.mystery-name {
+      color: rgba(255,255,255,0.2);
+    }
+
+    .card-pos {
+      font-size: 0.65rem;
+      color: #aac4f0;
+      font-weight: 600;
+    }
+    .card-pos.mystery-pos { color: rgba(255,255,255,0.15); }
+
+    .card-stars {
+      font-size: 0.7rem;
+      margin-top: 3px;
+    }
+    .card-flag {
+      font-size: 1rem;
+      margin-top: 2px;
+      display: block;
+    }
+
+    .dup-tag {
+      position: absolute;
+      top: 5px; right: 5px;
+      font-size: 0.55rem;
+      background: #ff4444;
+      color: #fff;
+      padding: 1px 5px;
+      border-radius: 999px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Reset button ── */
+    #reset-btn {
+      display: block;
+      margin: 32px auto 0;
+      padding: 10px 28px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      cursor: pointer;
+      background: transparent;
+      color: rgba(255,255,255,0.45);
+      transition: all 0.2s;
+    }
+    #reset-btn:hover {
+      background: rgba(255,50,50,0.15);
+      border-color: rgba(255,80,80,0.5);
+      color: #ff8080;
+    }
+
+    /* ── Confetti canvas ── */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 200;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<header>
+  <h1>⚽ FIFA Blind Bags</h1>
+  <p>Open bags &amp; collect all 20 players!</p>
+</header>
+
+<div id="counter-bar">
+  <span id="counter-text">0 / 20 collected</span>
+  <div id="progress-bar-wrap">
+    <div id="progress-bar"></div>
+  </div>
+</div>
+
+<main>
+  <section id="bag-section">
+    <div id="bag-stage">
+      <div class="bag-emoji" id="bag-icon">🛍️</div>
+    </div>
+    <button id="open-btn">🎁 Open Blind Bag!</button>
+  </section>
+
+  <section id="collection-section">
+    <h2>🏆 My Collection</h2>
+    <div id="collection-grid"></div>
+    <button id="reset-btn">Reset Collection</button>
+  </section>
+</main>
+
+<!-- Reveal overlay -->
+<div id="reveal-overlay">
+  <div id="reveal-card">
+    <div class="reveal-emoji" id="rv-emoji"></div>
+    <div class="reveal-name" id="rv-name"></div>
+    <div class="reveal-meta" id="rv-meta"></div>
+    <div class="reveal-stars" id="rv-stars"></div>
+    <span class="reveal-flag" id="rv-flag"></span>
+    <div id="rv-badge"></div>
+    <br/>
+    <button id="dismiss-btn">Nice! Keep Going →</button>
+  </div>
+</div>
+
+<script>
+  // ── Player data ──────────────────────────────────────────────
+  const PLAYERS = [
+    { id:1,  name:"Marco Silva",    emoji:"⚡", pos:"FWD", stars:5, flag:"🇧🇷" },
+    { id:2,  name:"Leo Varga",      emoji:"🔥", pos:"MID", stars:4, flag:"🇭🇺" },
+    { id:3,  name:"Carlos Reyes",   emoji:"💫", pos:"FWD", stars:5, flag:"🇲🇽" },
+    { id:4,  name:"Jamal Osei",     emoji:"🌟", pos:"DEF", stars:3, flag:"🇬🇭" },
+    { id:5,  name:"Luka Petrov",    emoji:"🎯", pos:"MID", stars:4, flag:"🇷🇸" },
+    { id:6,  name:"Rafi Mendez",    emoji:"🚀", pos:"FWD", stars:5, flag:"🇦🇷" },
+    { id:7,  name:"Yusuf Kone",     emoji:"💥", pos:"MID", stars:3, flag:"🇨🇮" },
+    { id:8,  name:"Dante Cruz",     emoji:"🦁", pos:"DEF", stars:4, flag:"🇨🇴" },
+    { id:9,  name:"Emil Novak",     emoji:"🌊", pos:"GK",  stars:4, flag:"🇨🇿" },
+    { id:10, name:"Soren Bach",     emoji:"❄️", pos:"DEF", stars:3, flag:"🇩🇰" },
+    { id:11, name:"Tiago Ferreira", emoji:"🎸", pos:"MID", stars:5, flag:"🇵🇹" },
+    { id:12, name:"Andres Lima",    emoji:"🌈", pos:"FWD", stars:4, flag:"🇵🇪" },
+    { id:13, name:"Kofi Asante",    emoji:"🦅", pos:"DEF", stars:3, flag:"🇬🇭" },
+    { id:14, name:"Matteo Romano",  emoji:"🎭", pos:"MID", stars:4, flag:"🇮🇹" },
+    { id:15, name:"Diego Vargas",   emoji:"🔮", pos:"FWD", stars:5, flag:"🇨🇱" },
+    { id:16, name:"Niko Bauer",     emoji:"⚙️", pos:"DEF", stars:3, flag:"🇩🇪" },
+    { id:17, name:"Rashid Omar",    emoji:"🌙", pos:"MID", stars:4, flag:"🇸🇳" },
+    { id:18, name:"Sven Holst",     emoji:"🐉", pos:"GK",  stars:5, flag:"🇸🇪" },
+    { id:19, name:"Pablo Rios",     emoji:"🎪", pos:"FWD", stars:3, flag:"🇺🇾" },
+    { id:20, name:"Amir Hassan",    emoji:"🦊", pos:"MID", stars:4, flag:"🇪🇬" },
+  ];
+
+  const STORAGE_KEY = 'fifa_blind_bag_collection_v1';
+
+  // collection: { [playerId]: count }
+  function loadCollection() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch { return {}; }
+  }
+  function saveCollection(col) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(col));
+  }
+
+  let collection = loadCollection();
+
+  // ── DOM refs ─────────────────────────────────────────────────
+  const openBtn       = document.getElementById('open-btn');
+  const bagIcon       = document.getElementById('bag-icon');
+  const overlay       = document.getElementById('reveal-overlay');
+  const dismissBtn    = document.getElementById('dismiss-btn');
+  const counterText   = document.getElementById('counter-text');
+  const progressBar   = document.getElementById('progress-bar');
+  const grid          = document.getElementById('collection-grid');
+  const resetBtn      = document.getElementById('reset-btn');
+  const canvas        = document.getElementById('confetti-canvas');
+  const ctx           = canvas.getContext('2d');
+
+  // ── Counter & grid ───────────────────────────────────────────
+  function uniqueCount() {
+    return Object.values(collection).filter(v => v > 0).length;
+  }
+
+  function updateCounter() {
+    const n = uniqueCount();
+    counterText.textContent = `${n} / ${PLAYERS.length} collected`;
+    progressBar.style.width = `${(n / PLAYERS.length) * 100}%`;
+  }
+
+  function buildGrid() {
+    grid.innerHTML = '';
+    PLAYERS.forEach(p => {
+      const count = collection[p.id] || 0;
+      const hasIt = count > 0;
+      const isDup = count > 1;
+      const card  = document.createElement('div');
+      card.className = 'player-card' + (hasIt ? ' collected' : '') + (isDup ? ' duplicate' : '');
+      card.id = `card-${p.id}`;
+
+      const stars = '⭐'.repeat(p.stars) + '☆'.repeat(5 - p.stars);
+
+      if (hasIt) {
+        card.innerHTML = `
+          ${isDup ? `<span class="dup-tag">x${count}</span>` : ''}
+          <span class="card-emoji">${p.emoji}</span>
+          <div class="card-name">${p.name}</div>
+          <div class="card-pos">${p.flag} ${p.pos}</div>
+          <div class="card-stars">${stars}</div>
+        `;
+      } else {
+        card.innerHTML = `
+          <span class="card-emoji mystery">⬛</span>
+          <div class="card-name mystery-name">???</div>
+          <div class="card-pos mystery-pos">???</div>
+          <div class="card-stars" style="color:rgba(255,255,255,0.15)">${'☆'.repeat(5)}</div>
+        `;
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  // ── Open bag ─────────────────────────────────────────────────
+  openBtn.addEventListener('click', () => {
+    openBtn.disabled = true;
+
+    // Shake animation
+    bagIcon.style.animation = 'none';
+    void bagIcon.offsetWidth;
+    bagIcon.style.animation = 'bag-shake 0.6s ease';
+
+    setTimeout(() => {
+      bagIcon.style.animation = '';
+      // Pick random player
+      const player = PLAYERS[Math.floor(Math.random() * PLAYERS.length)];
+      const wasDup = (collection[player.id] || 0) > 0;
+
+      collection[player.id] = (collection[player.id] || 0) + 1;
+      saveCollection(collection);
+      updateCounter();
+      buildGrid();
+
+      showReveal(player, wasDup);
+      if (!wasDup) launchConfetti();
+    }, 650);
+  });
+
+  // ── Reveal card ──────────────────────────────────────────────
+  function starsStr(n) {
+    return '⭐'.repeat(n) + '☆'.repeat(5 - n);
+  }
+
+  function showReveal(player, isDup) {
+    document.getElementById('rv-emoji').textContent  = player.emoji;
+    document.getElementById('rv-name').textContent   = player.name;
+    document.getElementById('rv-meta').textContent   = `${player.pos} • ${player.flag}`;
+    document.getElementById('rv-stars').textContent  = starsStr(player.stars);
+    document.getElementById('rv-flag').textContent   = '';
+
+    const badge = document.getElementById('rv-badge');
+    if (isDup) {
+      badge.innerHTML = '<span class="duplicate-badge">Already got this one!</span>';
+    } else {
+      badge.innerHTML = '<span class="new-badge">🎉 New card!</span>';
+    }
+
+    overlay.classList.add('visible');
+    spawnSparkles();
+  }
+
+  dismissBtn.addEventListener('click', () => {
+    overlay.classList.remove('visible');
+    openBtn.disabled = false;
+  });
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      overlay.classList.remove('visible');
+      openBtn.disabled = false;
+    }
+  });
+
+  // ── Sparkles ─────────────────────────────────────────────────
+  function spawnSparkles() {
+    const card = document.getElementById('reveal-card');
+    const rect  = card.getBoundingClientRect();
+    const emojis = ['✨','🌟','💫','⭐','🎉','🎊'];
+    for (let i = 0; i < 14; i++) {
+      const el = document.createElement('div');
+      el.className = 'sparkle';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      const angle = Math.random() * Math.PI * 2;
+      const dist  = 80 + Math.random() * 100;
+      el.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
+      el.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
+      el.style.left = (rect.left + rect.width / 2 - 12) + 'px';
+      el.style.top  = (rect.top  + rect.height / 2 - 12) + 'px';
+      el.style.animationDelay = (Math.random() * 0.2) + 's';
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+  }
+
+  // ── Confetti ─────────────────────────────────────────────────
+  let confettiParticles = [];
+  let confettiRunning   = false;
+
+  function launchConfetti() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const colors = ['#ffd700','#ff8c00','#00e676','#40c4ff','#ff4081','#e040fb','#fff'];
+    for (let i = 0; i < 90; i++) {
+      confettiParticles.push({
+        x: Math.random() * canvas.width,
+        y: -10,
+        r: 4 + Math.random() * 6,
+        d: 1.5 + Math.random() * 2.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        tilt: Math.random() * 10 - 5,
+        tiltSpeed: 0.07 + Math.random() * 0.08,
+        angle: 0,
+        opacity: 1,
+      });
+    }
+    if (!confettiRunning) {
+      confettiRunning = true;
+      animateConfetti();
+    }
+  }
+
+  function animateConfetti() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    confettiParticles.forEach(p => {
+      p.angle     += p.tiltSpeed;
+      p.y         += p.d;
+      p.x         += Math.sin(p.angle) * 1.5;
+      p.opacity   -= 0.007;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.opacity);
+      ctx.fillStyle   = p.color;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, p.r, p.r * 0.5, p.tilt + p.angle, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+    confettiParticles = confettiParticles.filter(p => p.opacity > 0 && p.y < canvas.height + 20);
+    if (confettiParticles.length > 0) {
+      requestAnimationFrame(animateConfetti);
+    } else {
+      confettiRunning = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  // ── Reset ─────────────────────────────────────────────────────
+  resetBtn.addEventListener('click', () => {
+    if (confirm('Reset your entire collection? This cannot be undone!')) {
+      collection = {};
+      saveCollection(collection);
+      updateCounter();
+      buildGrid();
+    }
+  });
+
+  // ── Init ──────────────────────────────────────────────────────
+  updateCounter();
+  buildGrid();
+</script>
+</body>
+</html>
