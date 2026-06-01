@@ -1094,6 +1094,17 @@
       ],
       index: 0,
     },
+    facepaint: {
+      options: [
+        { label: 'None'       },
+        { label: 'War Stripes' },
+        { label: 'Star'       },
+        { label: 'Lightning'  },
+        { label: 'Heart'      },
+        { label: 'Zigzag'     },
+      ],
+      index: 0,
+    },
   };
 
   let miiJerseyNum = 10;
@@ -1106,6 +1117,7 @@
       eyes:      MII_TRAITS.eyes.index,
       mouth:     MII_TRAITS.mouth.index,
       jersey:    MII_TRAITS.jersey.index,
+      facepaint: MII_TRAITS.facepaint.index,
       jerseyNum: miiJerseyNum,
     };
   }
@@ -1118,6 +1130,7 @@
     MII_TRAITS.eyes.index      = state.eyes      || 0;
     MII_TRAITS.mouth.index     = state.mouth     || 0;
     MII_TRAITS.jersey.index    = state.jersey    || 0;
+    MII_TRAITS.facepaint.index = state.facepaint || 0;
     miiJerseyNum               = state.jerseyNum || 10;
     document.getElementById('mii-jersey-num').value = miiJerseyNum;
     updateAllLabels();
@@ -1137,13 +1150,14 @@
     const H = targetCanvas.height;
 
     // resolve values
-    const skinColor   = MII_TRAITS.skin.options[state.skin].color;
-    const hairStyle   = MII_TRAITS.hair.options[state.hair].label;
-    const hairColor   = MII_TRAITS.haircolor.options[state.haircolor].color;
-    const eyeStyle    = MII_TRAITS.eyes.options[state.eyes].label;
-    const mouthStyle  = MII_TRAITS.mouth.options[state.mouth].label;
-    const jerseyColor = MII_TRAITS.jersey.options[state.jersey].color;
-    const num         = state.jerseyNum;
+    const skinColor    = MII_TRAITS.skin.options[state.skin].color;
+    const hairStyle    = MII_TRAITS.hair.options[state.hair].label;
+    const hairColor    = MII_TRAITS.haircolor.options[state.haircolor].color;
+    const eyeStyle     = MII_TRAITS.eyes.options[state.eyes].label;
+    const mouthStyle   = MII_TRAITS.mouth.options[state.mouth].label;
+    const jerseyColor  = MII_TRAITS.jersey.options[state.jersey].color;
+    const facePaint    = MII_TRAITS.facepaint.options[state.facepaint || 0].label;
+    const num          = state.jerseyNum;
 
     c.clearRect(0, 0, W, H);
 
@@ -1402,8 +1416,40 @@
       c.beginPath(); c.moveTo(eyeRX + 13, eyeY); c.lineTo(cx + headR - 10, eyeY + 2); c.stroke();
     }
 
-    // ── Cheek blush (if happy squint) ──
-    // already drawn inside drawEye
+    // ── Face paint ──
+    if (facePaint === 'War Stripes') {
+      c.fillStyle = '#e02020';
+      c.fillRect(cx - headR*0.6, eyeY - 4, headR*0.45, 8);
+      c.fillRect(cx + headR*0.15, eyeY - 4, headR*0.45, 8);
+    } else if (facePaint === 'Star') {
+      c.fillStyle = '#ffd700';
+      c.font = `bold ${headR*0.6}px Arial`;
+      c.textAlign = 'center';
+      c.fillText('★', cx, mouthY - headR*0.25);
+    } else if (facePaint === 'Lightning') {
+      c.strokeStyle = '#ffdd00';
+      c.lineWidth = 3;
+      c.beginPath();
+      c.moveTo(cx - 4, eyeY - 14);
+      c.lineTo(cx + 4, eyeY + 2);
+      c.lineTo(cx - 2, eyeY + 2);
+      c.lineTo(cx + 6, eyeY + 16);
+      c.stroke();
+    } else if (facePaint === 'Heart') {
+      c.fillStyle = '#ff69b4';
+      c.font = `bold ${headR*0.5}px Arial`;
+      c.textAlign = 'center';
+      c.fillText('♥', cx, mouthY - headR*0.2);
+    } else if (facePaint === 'Zigzag') {
+      c.strokeStyle = '#00ccff';
+      c.lineWidth = 3;
+      c.beginPath();
+      const zx = cx - headR*0.5, zy = eyeY + 10, zw = headR;
+      for (let i = 0; i <= 4; i++) {
+        c.lineTo(zx + (zw/4)*i, zy + (i%2===0 ? 0 : 10));
+      }
+      c.stroke();
+    }
 
     // ── Jersey collar ──
     c.fillStyle = jerseyIsLight ? '#ddd' : 'rgba(255,255,255,0.25)';
