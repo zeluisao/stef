@@ -623,7 +623,6 @@
   <div id="mii-modal">
     <h2>🎨 Mii Maker!</h2>
     <p class="mii-sub">Make your very own cartoon character!</p>
-    <canvas id="mii-canvas" width="200" height="250"></canvas>
 
     <div class="mii-options">
       <!-- Skin color -->
@@ -684,6 +683,25 @@
       <div class="mii-number-row">
         <label for="mii-jersey-num">Jersey Number:</label>
         <input id="mii-jersey-num" type="number" min="1" max="99" value="10" />
+      </div>
+    </div>
+
+    <!-- Draw on face section -->
+    <div id="draw-section">
+      <div style="font-weight:900;color:#ffd700;margin-bottom:8px;">✏️ Draw on your Mii's face!</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;">
+        <label style="color:#fff;font-size:0.85rem;">Color:
+          <input type="color" id="draw-color" value="#ff0000" style="width:36px;height:28px;border:none;cursor:pointer;border-radius:6px;">
+        </label>
+        <label style="color:#fff;font-size:0.85rem;">Size:
+          <input type="range" id="draw-size" min="2" max="20" value="5" style="width:70px;vertical-align:middle;">
+        </label>
+        <button id="draw-eraser" style="padding:4px 12px;border-radius:10px;border:none;background:#555;color:#fff;font-weight:700;cursor:pointer;">🧹 Eraser</button>
+        <button id="draw-clear" style="padding:4px 12px;border-radius:10px;border:none;background:#cc2200;color:#fff;font-weight:700;cursor:pointer;">🗑️ Clear</button>
+      </div>
+      <div style="position:relative;display:inline-block;width:200px;height:250px;">
+        <canvas id="mii-canvas" width="200" height="250" style="border-radius:12px;display:block;"></canvas>
+        <canvas id="draw-canvas" width="200" height="250" style="position:absolute;top:0;left:0;cursor:crosshair;border-radius:12px;"></canvas>
       </div>
     </div>
 
@@ -1543,6 +1561,71 @@
       myMiiSection.style.display = 'block';
     } catch (e) { /* ignore */ }
   })();
+
+  // ── Free Draw on Mii ─────────────────────────────────────────
+  const drawCanvas = document.getElementById('draw-canvas');
+  const drawCtx    = drawCanvas.getContext('2d');
+  let isDrawing    = false;
+  let eraserMode   = false;
+
+  function getPos(e) {
+    const rect = drawCanvas.getBoundingClientRect();
+    const scaleX = drawCanvas.width  / rect.width;
+    const scaleY = drawCanvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    isDrawing = true;
+    const {x, y} = getPos(e);
+    drawCtx.beginPath();
+    drawCtx.moveTo(x, y);
+  }
+
+  function doDraw(e) {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const {x, y} = getPos(e);
+    const size = parseInt(document.getElementById('draw-size').value);
+    drawCtx.lineWidth   = size;
+    drawCtx.lineCap     = 'round';
+    drawCtx.lineJoin    = 'round';
+    if (eraserMode) {
+      drawCtx.globalCompositeOperation = 'destination-out';
+      drawCtx.strokeStyle = 'rgba(0,0,0,1)';
+    } else {
+      drawCtx.globalCompositeOperation = 'source-over';
+      drawCtx.strokeStyle = document.getElementById('draw-color').value;
+    }
+    drawCtx.lineTo(x, y);
+    drawCtx.stroke();
+    drawCtx.beginPath();
+    drawCtx.moveTo(x, y);
+  }
+
+  function stopDraw() { isDrawing = false; drawCtx.beginPath(); }
+
+  drawCanvas.addEventListener('mousedown',  startDraw);
+  drawCanvas.addEventListener('mousemove',  doDraw);
+  drawCanvas.addEventListener('mouseup',    stopDraw);
+  drawCanvas.addEventListener('mouseleave', stopDraw);
+  drawCanvas.addEventListener('touchstart', startDraw, { passive: false });
+  drawCanvas.addEventListener('touchmove',  doDraw,    { passive: false });
+  drawCanvas.addEventListener('touchend',   stopDraw);
+
+  document.getElementById('draw-eraser').addEventListener('click', () => {
+    eraserMode = !eraserMode;
+    document.getElementById('draw-eraser').textContent = eraserMode ? '✏️ Draw' : '🧹 Eraser';
+    document.getElementById('draw-eraser').style.background = eraserMode ? '#ffd700' : '#555';
+    document.getElementById('draw-eraser').style.color = eraserMode ? '#000' : '#fff';
+  });
+
+  document.getElementById('draw-clear').addEventListener('click', () => {
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+  });
 </script>
 </body>
 </html>
