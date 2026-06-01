@@ -732,99 +732,34 @@
 <script>
   // ── Player data ──────────────────────────────────────────────
   const PLAYERS = [
-    // South Korea
-    { id:1,  name:"Son Heung-min",       num:7,  pos:"FWD", stars:5, flag:"🇰🇷", country:"South Korea" },
-    { id:2,  name:"Kim Min-jae",         num:3,  pos:"DEF", stars:4, flag:"🇰🇷", country:"South Korea" },
-    // Canada
-    { id:3,  name:"Alphonso Davies",     num:3,  pos:"DEF", stars:5, flag:"🇨🇦", country:"Canada" },
-    { id:4,  name:"Jonathan David",      num:9,  pos:"FWD", stars:5, flag:"🇨🇦", country:"Canada" },
-    // Bosnia & Herzegovina
-    { id:5,  name:"Edin Dzeko",          num:9,  pos:"FWD", stars:4, flag:"🇧🇦", country:"Bosnia & Herz." },
-    { id:6,  name:"Ermedin Demirovic",   num:11, pos:"FWD", stars:3, flag:"🇧🇦", country:"Bosnia & Herz." },
-    // Switzerland
-    { id:7,  name:"Granit Xhaka",        num:10, pos:"MID", stars:4, flag:"🇨🇭", country:"Switzerland" },
-    { id:8,  name:"Breel Embolo",        num:23, pos:"FWD", stars:3, flag:"🇨🇭", country:"Switzerland" },
-    // Brazil
-    { id:9,  name:"Vini Jr",             num:7,  pos:"FWD", stars:5, flag:"🇧🇷", country:"Brazil" },
-    { id:10, name:"Neymar",              num:10, pos:"FWD", stars:5, flag:"🇧🇷", country:"Brazil" },
-    // Morocco
-    { id:11, name:"Achraf Hakimi",       num:2,  pos:"DEF", stars:5, flag:"🇲🇦", country:"Morocco" },
-    { id:12, name:"Brahim Díaz",         num:10, pos:"FWD", stars:4, flag:"🇲🇦", country:"Morocco" },
-    // Haiti
-    { id:13, name:"Jean-Ricner Bellegarde", num:8, pos:"MID", stars:3, flag:"🇭🇹", country:"Haiti" },
-    { id:14, name:"Wilson Isidor",       num:11, pos:"FWD", stars:3, flag:"🇭🇹", country:"Haiti" },
-    // Scotland
-    { id:15, name:"Andy Robertson",      num:3,  pos:"DEF", stars:4, flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿", country:"Scotland" },
-    { id:16, name:"Scott McTominay",     num:6,  pos:"MID", stars:4, flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿", country:"Scotland" },
-    // USA
-    { id:17, name:"Christian Pulisic",   num:10, pos:"FWD", stars:5, flag:"🇺🇸", country:"USA" },
-    { id:18, name:"Weston McKennie",     num:8,  pos:"MID", stars:3, flag:"🇺🇸", country:"USA" },
-    // Germany
-    { id:19, name:"Florian Wirtz",       num:10, pos:"MID", stars:5, flag:"🇩🇪", country:"Germany" },
-    { id:20, name:"Jamal Musiala",       num:14, pos:"MID", stars:5, flag:"🇩🇪", country:"Germany" },
-    // Curaçao
-    { id:21, name:"Tahith Chong",        num:11, pos:"FWD", stars:3, flag:"🇨🇼", country:"Curaçao" },
-    { id:22, name:"Sontje Hansen",       num:9,  pos:"FWD", stars:3, flag:"🇨🇼", country:"Curaçao" },
-    // Ivory Coast
-    { id:23, name:"Amad Diallo",         num:11, pos:"FWD", stars:4, flag:"🇨🇮", country:"Ivory Coast" },
-    { id:24, name:"Franck Kessié",       num:23, pos:"MID", stars:4, flag:"🇨🇮", country:"Ivory Coast" },
-    // Netherlands
-    { id:25, name:"Virgil van Dijk",     num:4,  pos:"DEF", stars:5, flag:"🇳🇱", country:"Netherlands" },
-    { id:26, name:"Cody Gakpo",          num:11, pos:"FWD", stars:4, flag:"🇳🇱", country:"Netherlands" },
-    // Japan
-    { id:27, name:"Takefusa Kubo",       num:14, pos:"MID", stars:4, flag:"🇯🇵", country:"Japan" },
-    { id:28, name:"Wataru Endo",         num:6,  pos:"MID", stars:3, flag:"🇯🇵", country:"Japan" },
-    // Sweden
-    { id:29, name:"Viktor Gyokeres",     num:11, pos:"FWD", stars:5, flag:"🇸🇪", country:"Sweden" },
-    { id:30, name:"Alexander Isak",      num:14, pos:"FWD", stars:5, flag:"🇸🇪", country:"Sweden" },
-    // Tunisia
-    { id:31, name:"Ellyes Skhiri",       num:6,  pos:"MID", stars:3, flag:"🇹🇳", country:"Tunisia" },
-    { id:32, name:"Hannibal Mejbri",     num:8,  pos:"MID", stars:3, flag:"🇹🇳", country:"Tunisia" },
-    // Belgium
-    { id:33, name:"Kevin De Bruyne",     num:7,  pos:"MID", stars:5, flag:"🇧🇪", country:"Belgium" },
-    { id:34, name:"Romelu Lukaku",       num:9,  pos:"FWD", stars:5, flag:"🇧🇪", country:"Belgium" },
-    // New Zealand
-    { id:35, name:"Chris Wood",          num:9,  pos:"FWD", stars:4, flag:"🇳🇿", country:"New Zealand" },
-    { id:36, name:"Marko Stamenic",      num:8,  pos:"MID", stars:3, flag:"🇳🇿", country:"New Zealand" },
-    // Spain
-    { id:37, name:"Lamine Yamal",        num:19, pos:"FWD", stars:5, flag:"🇪🇸", country:"Spain" },
-    { id:38, name:"Pedri",               num:8,  pos:"MID", stars:5, flag:"🇪🇸", country:"Spain" },
-    // Cape Verde
-    { id:39, name:"Logan Costa",         num:5,  pos:"DEF", stars:3, flag:"🇨🇻", country:"Cape Verde" },
-    { id:40, name:"Jovane Cabral",       num:11, pos:"FWD", stars:3, flag:"🇨🇻", country:"Cape Verde" },
-    // France
-    { id:41, name:"Kylian Mbappé",       num:10, pos:"FWD", stars:5, flag:"🇫🇷", country:"France" },
-    { id:42, name:"N'Golo Kanté",        num:13, pos:"MID", stars:4, flag:"🇫🇷", country:"France" },
-    // Senegal
-    { id:43, name:"Sadio Mané",          num:10, pos:"FWD", stars:5, flag:"🇸🇳", country:"Senegal" },
-    { id:44, name:"Kalidou Koulibaly",   num:3,  pos:"DEF", stars:4, flag:"🇸🇳", country:"Senegal" },
-    // Norway
-    { id:45, name:"Erling Haaland",      num:9,  pos:"FWD", stars:5, flag:"🇳🇴", country:"Norway" },
-    { id:46, name:"Martin Ødegaard",     num:8,  pos:"MID", stars:5, flag:"🇳🇴", country:"Norway" },
-    // Argentina
-    { id:47, name:"Lionel Messi",        num:10, pos:"FWD", stars:5, flag:"🇦🇷", country:"Argentina" },
-    { id:48, name:"Lautaro Martinez",    num:22, pos:"FWD", stars:5, flag:"🇦🇷", country:"Argentina" },
-    // Austria
-    { id:49, name:"David Alaba",         num:8,  pos:"DEF", stars:4, flag:"🇦🇹", country:"Austria" },
-    { id:50, name:"Marcel Sabitzer",     num:6,  pos:"MID", stars:3, flag:"🇦🇹", country:"Austria" },
-    // Portugal
-    { id:51, name:"Cristiano Ronaldo",   num:7,  pos:"FWD", stars:5, flag:"🇵🇹", country:"Portugal" },
-    { id:52, name:"Bruno Fernandes",     num:8,  pos:"MID", stars:5, flag:"🇵🇹", country:"Portugal" },
-    // DR Congo
-    { id:53, name:"Yoane Wissa",         num:11, pos:"FWD", stars:4, flag:"🇨🇩", country:"DR Congo" },
-    { id:54, name:"Aaron Wan-Bissaka",   num:16, pos:"DEF", stars:3, flag:"🇨🇩", country:"DR Congo" },
-    // Colombia
-    { id:55, name:"Luis Díaz",           num:7,  pos:"FWD", stars:5, flag:"🇨🇴", country:"Colombia" },
-    { id:56, name:"James Rodríguez",     num:10, pos:"MID", stars:4, flag:"🇨🇴", country:"Colombia" },
-    // England
-    { id:57, name:"Harry Kane",          num:9,  pos:"FWD", stars:5, flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", country:"England" },
-    { id:58, name:"Jude Bellingham",     num:22, pos:"MID", stars:5, flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", country:"England" },
-    // Croatia
-    { id:59, name:"Luka Modrić",         num:10, pos:"MID", stars:5, flag:"🇭🇷", country:"Croatia" },
-    { id:60, name:"Joško Gvardiol",      num:3,  pos:"DEF", stars:4, flag:"🇭🇷", country:"Croatia" },
-    // Panama
-    { id:61, name:"Aníbal Godoy",        num:5,  pos:"MID", stars:3, flag:"🇵🇦", country:"Panama" },
-    { id:62, name:"Ismael Díaz",         num:9,  pos:"FWD", stars:3, flag:"🇵🇦", country:"Panama" },
+    { id:1,  name:"Son Heung-min",     num:7,  pos:"FWD", stars:5, flag:"🇰🇷", country:"South Korea" },
+    { id:2,  name:"Alphonso Davies",   num:3,  pos:"DEF", stars:5, flag:"🇨🇦", country:"Canada" },
+    { id:3,  name:"Jonathan David",    num:9,  pos:"FWD", stars:5, flag:"🇨🇦", country:"Canada" },
+    { id:4,  name:"Vini Jr",           num:7,  pos:"FWD", stars:5, flag:"🇧🇷", country:"Brazil" },
+    { id:5,  name:"Neymar",            num:10, pos:"FWD", stars:5, flag:"🇧🇷", country:"Brazil" },
+    { id:6,  name:"Achraf Hakimi",     num:2,  pos:"DEF", stars:5, flag:"🇲🇦", country:"Morocco" },
+    { id:7,  name:"Christian Pulisic", num:10, pos:"FWD", stars:5, flag:"🇺🇸", country:"USA" },
+    { id:8,  name:"Florian Wirtz",     num:10, pos:"MID", stars:5, flag:"🇩🇪", country:"Germany" },
+    { id:9,  name:"Jamal Musiala",     num:14, pos:"MID", stars:5, flag:"🇩🇪", country:"Germany" },
+    { id:10, name:"Virgil van Dijk",   num:4,  pos:"DEF", stars:5, flag:"🇳🇱", country:"Netherlands" },
+    { id:11, name:"Viktor Gyokeres",   num:11, pos:"FWD", stars:5, flag:"🇸🇪", country:"Sweden" },
+    { id:12, name:"Alexander Isak",    num:14, pos:"FWD", stars:5, flag:"🇸🇪", country:"Sweden" },
+    { id:13, name:"Kevin De Bruyne",   num:7,  pos:"MID", stars:5, flag:"🇧🇪", country:"Belgium" },
+    { id:14, name:"Romelu Lukaku",     num:9,  pos:"FWD", stars:5, flag:"🇧🇪", country:"Belgium" },
+    { id:15, name:"Lamine Yamal",      num:19, pos:"FWD", stars:5, flag:"🇪🇸", country:"Spain" },
+    { id:16, name:"Pedri",             num:8,  pos:"MID", stars:5, flag:"🇪🇸", country:"Spain" },
+    { id:17, name:"Kylian Mbappé",     num:10, pos:"FWD", stars:5, flag:"🇫🇷", country:"France" },
+    { id:18, name:"Sadio Mané",        num:10, pos:"FWD", stars:5, flag:"🇸🇳", country:"Senegal" },
+    { id:19, name:"Erling Haaland",    num:9,  pos:"FWD", stars:5, flag:"🇳🇴", country:"Norway" },
+    { id:20, name:"Martin Ødegaard",   num:8,  pos:"MID", stars:5, flag:"🇳🇴", country:"Norway" },
+    { id:21, name:"Lionel Messi",      num:10, pos:"FWD", stars:5, flag:"🇦🇷", country:"Argentina" },
+    { id:22, name:"Lautaro Martinez",  num:22, pos:"FWD", stars:5, flag:"🇦🇷", country:"Argentina" },
+    { id:23, name:"Cristiano Ronaldo", num:7,  pos:"FWD", stars:5, flag:"🇵🇹", country:"Portugal" },
+    { id:24, name:"Bruno Fernandes",   num:8,  pos:"MID", stars:5, flag:"🇵🇹", country:"Portugal" },
+    { id:25, name:"Luis Díaz",         num:7,  pos:"FWD", stars:5, flag:"🇨🇴", country:"Colombia" },
+    { id:26, name:"Harry Kane",        num:9,  pos:"FWD", stars:5, flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", country:"England" },
+    { id:27, name:"Jude Bellingham",   num:22, pos:"MID", stars:5, flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", country:"England" },
+    { id:28, name:"Luka Modrić",       num:10, pos:"MID", stars:5, flag:"🇭🇷", country:"Croatia" },
   ];
 
   const STORAGE_KEY = 'fifa_blind_bag_collection_v2';
